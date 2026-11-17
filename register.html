@@ -54,18 +54,18 @@
       <p class="text-xs text-sky-300 font-bold">مساحتك المثالية للدراسة والعمل والإنجاز</p>
     </header>
 
-    <!-- Instant Cross-Platform Wi-Fi Connect Button (Controlled by Admin) -->
+    <!-- Instant 1-Tap Cross-Platform Wi-Fi Connect Bar (Controlled by Admin) -->
     <div id="wifiQuickBar" class="hidden">
-      <button onclick="openWifiConnectModal()"
+      <button onclick="smartInstantWifiConnect()"
         class="w-full bg-gradient-to-l from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white rounded-2xl p-3.5 shadow-lg shadow-sky-500/25 border border-white/20 flex items-center justify-between transition active:scale-[0.99]">
         <div class="flex items-center gap-3">
           <span class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl">📶</span>
           <div class="text-right">
-            <span class="block text-xs font-black">الاتصال الفوري بشبكة الواي فاي</span>
+            <span class="block text-xs font-black">اتصال مباشر بشبكة الواي فاي</span>
             <span id="wifiBarSsidLabel" class="block text-[11px] text-sky-100 font-bold" dir="ltr">Quiet-Corner-5G</span>
           </div>
         </div>
-        <span class="bg-white text-sky-700 font-black text-xs px-3 py-1.5 rounded-xl shadow-sm">اتصال سريع ⚡</span>
+        <span class="bg-white text-sky-700 font-black text-xs px-3 py-1.5 rounded-xl shadow-sm">اتصل فوراً ⚡</span>
       </button>
     </div>
 
@@ -293,14 +293,21 @@
 
   <!-- ==================== UNIVERSAL WI-FI CONNECT MODAL ==================== -->
   <div id="wifiConnectModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-200 text-center">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h3 class="text-base font-black text-slate-800 flex items-center gap-2"><span>📶</span> اتصال فوري بشبكة الواي فاي</h3>
+    <div class="bg-white rounded-3xl max-w-sm w-full p-5 space-y-3.5 shadow-2xl border border-slate-200 text-center max-h-[92vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-2.5">
+        <h3 class="text-base font-black text-slate-800 flex items-center gap-2"><span>📶</span> اتصال مباشر بشبكة الواي فاي</h3>
         <button onclick="closeWifiConnectModal()" class="text-slate-400 hover:text-slate-700 font-bold text-2xl leading-none">&times;</button>
       </div>
 
+      <!-- Direct Instant Wi-Fi QR Code (Prominent at top for 1-glance scan or long-press) -->
+      <div class="bg-gradient-to-b from-sky-50 to-white border-2 border-sky-200 rounded-2xl p-3 space-y-1.5">
+        <span class="inline-block bg-sky-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full">QR الواي فاي المباشر</span>
+        <div id="wifiConnectQrBox" class="bg-white p-2.5 rounded-xl inline-block border border-slate-200 shadow-sm"></div>
+        <p class="text-[11px] font-extrabold text-slate-600">اضغط مطولاً على الكود أو امسحه بالكاميرا للاتصال الفوري</p>
+      </div>
+
       <!-- Network Credentials Box -->
-      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2.5 text-right">
+      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-2 text-right">
         <div class="flex items-center justify-between">
           <span class="text-[11px] font-bold text-slate-500">اسم الشبكة:</span>
           <span id="modalWifiSsid" class="text-sm font-black text-slate-800 font-mono" dir="ltr">---</span>
@@ -309,27 +316,33 @@
           <span class="text-[11px] font-bold text-slate-500">كلمة المرور:</span>
           <span id="modalWifiPass" class="text-sm font-black text-sky-600 font-mono select-all" dir="ltr">---</span>
         </div>
+        <div id="modalWifiOpenBadge" class="hidden border-t border-slate-200/70 pt-2 text-center">
+          <span class="text-xs font-black text-emerald-600">🔓 شبكة مفتوحة — لا تحتاج كلمة مرور</span>
+        </div>
       </div>
 
-      <!-- Action 1: 1-Tap Copy Password (Works on Android, Windows, iOS, Mac) -->
-      <button id="btnCopyWifiPass" onclick="copyWifiPassword()"
-        class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-2xl text-xs shadow-md flex items-center justify-center gap-2 transition">
-        <span>📋</span><span>نسخ كلمة المرور بضغطة واحدة</span>
-      </button>
+      <!-- Smart 1-Tap Platform Connect Actions -->
+      <div class="space-y-2">
+        <!-- Apple iOS / iPadOS / macOS Auto-Join Profile -->
+        <button id="btnAppleWifiProfile" onclick="installAppleWifiProfile()"
+          class="w-full bg-slate-900 hover:bg-black text-white font-black py-3 rounded-2xl text-xs shadow-md flex items-center justify-center gap-2 transition">
+          <span></span><span>اتصال تلقائي مباشر (آيفون / آيباد / ماك)</span>
+        </button>
 
-      <!-- Action 2: Apple iOS / iPadOS / macOS Direct Profile Install -->
-      <button id="btnAppleWifiProfile" onclick="installAppleWifiProfile()"
-        class="w-full bg-slate-800 hover:bg-slate-900 text-white font-black py-3 rounded-2xl text-xs shadow-md flex items-center justify-center gap-2 transition">
-        <span></span><span>اتصال تلقائي لأجهزة آيفون وآيباد وماك</span>
-      </button>
+        <!-- Android 1-Tap Copy + Open Android Wi-Fi Settings -->
+        <button id="btnAndroidWifiDirect" onclick="connectAndroidWifiDirect()"
+          class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-2xl text-xs shadow-md flex items-center justify-center gap-2 transition">
+          <span>🤖</span><span>نسخ كلمة السر وفتح الواي فاي فوراً (أندرويد)</span>
+        </button>
 
-      <!-- Action 3: Universal Wi-Fi QR Code (Android / iOS Long-Press or Camera) -->
-      <div class="bg-sky-50/70 border border-sky-200 rounded-2xl p-3 space-y-2">
-        <p class="text-[11px] font-extrabold text-sky-900">أو اضغط مطولاً على الكود / امسحه بالكاميرا للاتصال المباشر:</p>
-        <div id="wifiConnectQrBox" class="bg-white p-2.5 rounded-xl inline-block border border-slate-200 shadow-sm"></div>
+        <!-- Universal Copy Password Button -->
+        <button id="btnCopyWifiPass" onclick="copyWifiPassword()"
+          class="w-full bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-extrabold py-2.5 rounded-2xl text-xs flex items-center justify-center gap-2 transition">
+          <span>📋</span><span>نسخ كلمة المرور فقط</span>
+        </button>
       </div>
 
-      <button onclick="closeWifiConnectModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl text-xs transition">
+      <button onclick="closeWifiConnectModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 rounded-xl text-xs transition">
         إغلاق
       </button>
     </div>
@@ -423,26 +436,68 @@ function escapeXml(str) {
   return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
+function isAppleDevice() {
+  return /iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent) && !window.MSStream;
+}
+
+function isAndroidDevice() {
+  return /Android/i.test(navigator.userAgent);
+}
+
+async function smartInstantWifiConnect() {
+  const wf = (cloudData && cloudData.wifi) || {};
+  if (!wf.ssid) return alert('لم يتم ضبط شبكة الواي فاي بعد.');
+  // Auto-copy password to clipboard immediately on tap for convenience
+  if (wf.password && wf.security !== 'nopass') {
+    try { await navigator.clipboard.writeText(wf.password); } catch (e) {}
+  }
+  openWifiConnectModal();
+  if (isAppleDevice()) {
+    installAppleWifiProfile();
+  }
+}
+
+async function connectAndroidWifiDirect() {
+  const wf = (cloudData && cloudData.wifi) || {};
+  const pass = wf.password || '';
+  if (pass && wf.security !== 'nopass') {
+    await copyWifiPassword();
+  }
+  if (isAndroidDevice()) {
+    // Open native Android Wi-Fi Settings panel directly via Intent URI
+    window.location.href = 'intent:#Intent;action=android.settings.WIFI_SETTINGS;end';
+  } else {
+    alert('تم نسخ كلمة المرور! افتح إعدادات الواي فاي في جهازك واختر الشبكة: ' + (wf.ssid || ''));
+  }
+}
+
 function openWifiConnectModal() {
   const wf = (cloudData && cloudData.wifi) || {};
   if (!wf.ssid) return alert('لم يتم ضبط شبكة الواي فاي بعد.');
 
-  const sec = wf.security || 'WPA';
-  const pass = wf.password || '';
+  const pass = (wf.password || '').trim();
+  const sec = (!pass || wf.security === 'nopass') ? 'nopass' : (wf.security || 'WPA');
   document.getElementById('modalWifiSsid').textContent = wf.ssid;
 
   const passRow = document.getElementById('modalWifiPassRow');
+  const openBadge = document.getElementById('modalWifiOpenBadge');
   const copyBtn = document.getElementById('btnCopyWifiPass');
-  if (sec === 'nopass' || !pass) {
+  const androidBtn = document.getElementById('btnAndroidWifiDirect');
+
+  if (sec === 'nopass') {
     passRow.classList.add('hidden');
     copyBtn.classList.add('hidden');
+    openBadge.classList.remove('hidden');
+    androidBtn.innerHTML = '<span>🤖</span><span>فتح إعدادات الواي فاي للاتصال الفوري (أندرويد)</span>';
   } else {
     passRow.classList.remove('hidden');
     copyBtn.classList.remove('hidden');
+    openBadge.classList.add('hidden');
     document.getElementById('modalWifiPass').textContent = pass;
+    androidBtn.innerHTML = '<span>🤖</span><span>نسخ كلمة السر وفتح الواي فاي فوراً (أندرويد)</span>';
   }
 
-  // Generate standard Wi-Fi QR Code (works on Android, iOS, HarmonyOS)
+  // Generate high-contrast direct Wi-Fi QR Code (works on Android, iOS, HarmonyOS)
   const qrBox = document.getElementById('wifiConnectQrBox');
   qrBox.innerHTML = '';
   const wifiPayload = sec === 'nopass'
@@ -450,10 +505,11 @@ function openWifiConnectModal() {
     : `WIFI:T:${sec};S:${escapeWifiField(wf.ssid)};P:${escapeWifiField(pass)};;`;
   new QRCode(qrBox, {
     text: wifiPayload,
-    width: 132,
-    height: 132,
+    width: 148,
+    height: 148,
     colorDark: "#0f172a",
-    colorLight: "#ffffff"
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.M
   });
 
   const modal = document.getElementById('wifiConnectModal');

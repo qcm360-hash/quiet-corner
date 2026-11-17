@@ -57,25 +57,54 @@
         <h2 class="text-xl font-black text-slate-800">مركز الركن الهادئ</h2>
         <p class="text-xs text-slate-500 font-bold mt-1">تسجيل الدخول إلى نظام الإدارة والكاشير</p>
       </div>
-      <div class="space-y-3 text-right">
+      <div id="standardLoginBox" class="space-y-3 text-right">
         <div>
           <label class="block text-xs font-extrabold text-slate-600 mb-1">اسم المستخدم (Username)</label>
-          <input id="loginUsernameInput" type="text" placeholder="أدخل اسم المستخدم" dir="ltr"
+          <input id="loginUsernameInput" type="text" placeholder="أدخل اسم المستخدم" dir="ltr" autocomplete="username"
             class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-left focus:outline-none focus:ring-2 focus:ring-sky-500"
             onkeydown="if(event.key==='Enter') attemptSystemLogin()">
         </div>
         <div>
           <label class="block text-xs font-extrabold text-slate-600 mb-1">كلمة المرور (Password)</label>
-          <input id="loginPasswordInput" type="password" placeholder="••••••••" dir="ltr"
+          <input id="loginPasswordInput" type="password" placeholder="••••••••" dir="ltr" autocomplete="current-password"
             class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-left focus:outline-none focus:ring-2 focus:ring-sky-500"
             onkeydown="if(event.key==='Enter') attemptSystemLogin()">
         </div>
         <p id="loginErrorMsg" class="hidden text-xs font-bold text-rose-600 text-center">اسم المستخدم أو كلمة المرور غير صحيحة!</p>
-        <button onclick="attemptSystemLogin()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-black py-3 rounded-xl shadow-lg transition text-sm">
+        <button id="btnSystemLoginSubmit" onclick="attemptSystemLogin()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-black py-3 rounded-xl shadow-lg transition text-sm">
           🔐 دخول إلى النظام
         </button>
+        <div class="pt-1 text-center">
+          <button type="button" onclick="toggleForgotAccountPanel(true)" class="text-xs font-extrabold text-amber-600 hover:text-amber-700 underline underline-offset-4 transition">
+            🔑 نسيت الحساب؟ (استعادة الدخول عبر السوبر يوزر)
+          </button>
+        </div>
       </div>
-      <p class="text-[11px] text-slate-400 font-bold">نظام محمي — يرجى إدخال بيانات حسابك المعتمدة</p>
+
+      <!-- Forgot Account / Superuser Recovery Panel -->
+      <div id="forgotAccountBox" class="hidden space-y-3 text-right bg-amber-50/80 border border-amber-200 p-4 rounded-2xl">
+        <div class="text-center space-y-0.5">
+          <h3 class="text-sm font-black text-amber-900">🛡️ استعادة الدخول (وضع السوبر يوزر)</h3>
+          <p class="text-[11px] text-amber-800">أدخل رمز السوبر يوزر الماستر لفتح النظام وإعادة ضبط الحسابات</p>
+        </div>
+        <div>
+          <label class="block text-xs font-extrabold text-amber-900 mb-1">رمز السوبر يوزر (Superuser Key)</label>
+          <input id="superuserRecoveryInput" type="password" placeholder="أدخل رمز السوبر يوزر..." dir="ltr"
+            class="w-full px-4 py-2.5 bg-white border border-amber-300 rounded-xl text-sm font-bold text-left focus:outline-none focus:ring-2 focus:ring-amber-500"
+            onkeydown="if(event.key==='Enter') attemptSuperuserRecovery()">
+        </div>
+        <p id="superuserErrorMsg" class="hidden text-xs font-bold text-rose-600 text-center">رمز السوبر يوزر غير صحيح!</p>
+        <button onclick="attemptSuperuserRecovery()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-black py-2.5 rounded-xl shadow transition text-sm">
+          🔓 فتح النظام بصلاحية سوبر يوزر
+        </button>
+        <div class="text-center">
+          <button type="button" onclick="toggleForgotAccountPanel(false)" class="text-xs font-bold text-slate-500 hover:text-slate-700">
+            ← العودة لتسجيل الدخول العادي
+          </button>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-slate-400 font-bold">نظام مشفر ومحمى بالكامل (SHA-256 Security)</p>
     </div>
   </div>
 
@@ -179,8 +208,14 @@
         <span id="headerLiveDateTime">--/--/---- --:--:--</span>
       </div>
 
-      <!-- Cloud Status, Today Revenue & Active User -->
+      <!-- Cloud Status, Sound Toggle, Today Revenue & Active User -->
       <div class="flex items-center gap-2.5 flex-wrap">
+        <button id="btnToggleSystemSounds" onclick="toggleSystemSounds()" title="تشغيل / كتم أصوات النظام"
+          class="flex items-center gap-1 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition">
+          <span id="soundStatusIcon">🔊</span>
+          <span class="hidden sm:inline">الأصوات</span>
+        </button>
+
         <div class="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-extrabold">
           <span>دخل اليوم:</span>
           <span id="headerTodayTotal">0 ل.س</span>
@@ -452,8 +487,8 @@
               <input id="wifiSsidInput" type="text" placeholder="Quiet-Corner-WiFi" dir="ltr" class="w-full px-3.5 py-2 bg-white border border-sky-200 rounded-xl text-sm font-bold text-left">
             </div>
             <div>
-              <label class="block text-[11px] font-extrabold text-slate-600 mb-1">كلمة مرور الشبكة</label>
-              <input id="wifiPasswordInput" type="text" placeholder="••••••••" dir="ltr" class="w-full px-3.5 py-2 bg-white border border-sky-200 rounded-xl text-sm font-bold text-left">
+              <label class="block text-[11px] font-extrabold text-slate-600 mb-1">كلمة مرور الشبكة (اختياري)</label>
+              <input id="wifiPasswordInput" type="text" placeholder="اختياري — اتركه فارغاً للشبكة المفتوحة" dir="ltr" class="w-full px-3.5 py-2 bg-white border border-sky-200 rounded-xl text-sm font-bold text-left">
             </div>
             <div>
               <label class="block text-[11px] font-extrabold text-slate-600 mb-1">نوع الحماية</label>
@@ -934,22 +969,66 @@
     </div>
   </div>
 
-  <!-- 7. Webcam QR / Barcode Scanner Modal -->
-  <div id="webcamScannerModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl text-center">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h3 class="text-lg font-black text-slate-800 flex items-center gap-2"><span>📷</span> ماسح كاميرا اللابتوب التلقائي</h3>
-        <button onclick="closeWebcamScannerModal()" class="text-slate-400 hover:text-slate-700 font-bold text-2xl">&times;</button>
+  <!-- Live Floating Scan Notification Toast -->
+  <div id="scanToastBanner" class="fixed top-20 left-1/2 -translate-x-1/2 z-[90] hidden max-w-md w-[92%] pointer-events-none transition-all duration-300">
+    <div id="scanToastInner" class="bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border-2 border-sky-400 flex items-center gap-3">
+      <span id="scanToastIcon" class="text-2xl">✅</span>
+      <div class="text-right flex-1">
+        <p id="scanToastTitle" class="text-sm font-black">---</p>
+        <p id="scanToastSub" class="text-xs text-slate-300 font-bold mt-0.5">---</p>
       </div>
-      <p class="text-xs text-slate-500 font-bold">وجّه شاشة موبايل الزبون (كود QR) أمام كاميرا الويب كام ليتم تسجيل الدخول أو الخروج فوراً</p>
-      <div id="webcamReaderContainer" class="w-full rounded-2xl overflow-hidden border-2 border-sky-400 bg-slate-950 min-h-[240px]"></div>
-      <div id="webcamScanFeedback" class="text-xs font-extrabold text-sky-700 bg-sky-50 border border-sky-200 py-2 px-3 rounded-xl">
-        جاري تشغيل الكاميرا...
+    </div>
+  </div>
+
+  <!-- 7. Always-On Background / Floating High-Precision QR & Barcode Scanner -->
+  <div id="webcamScannerDock" class="no-print fixed bottom-4 left-4 z-40 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border-2 border-sky-400 overflow-hidden hidden transition-all">
+    <!-- Top Control Bar -->
+    <div class="bg-slate-800 text-white px-4 py-2.5 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+        <span class="text-xs font-black">ماسح QR الدائم (يعمل بالخلفية)</span>
       </div>
-      <div class="flex justify-center">
-        <button onclick="closeWebcamScannerModal()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-6 py-2.5 rounded-xl text-xs shadow">
-          إغلاق الكاميرا
+      <div class="flex items-center gap-1.5">
+        <button id="btnMinimizeQrDock" onclick="toggleMinimizeQrDock()" title="تصغير للخلفية مع استمرار المسح"
+          class="bg-slate-700 hover:bg-slate-600 text-sky-300 px-2.5 py-1 rounded-lg text-[11px] font-black transition">
+          🗕 خلفية
         </button>
+        <button onclick="closeWebcamScannerModal()" title="إيقاف الكاميرا وإغلاق"
+          class="bg-rose-600/80 hover:bg-rose-600 text-white px-2.5 py-1 rounded-lg text-[11px] font-black transition">
+          ✕
+        </button>
+      </div>
+    </div>
+
+    <!-- Collapsible Body (Camera remains active in DOM even when minimized!) -->
+    <div id="webcamDockBody" class="p-3.5 space-y-2.5 bg-white">
+      <!-- External USB / Laptop Camera Selector -->
+      <div class="flex items-center gap-1.5">
+        <select id="qrCameraSelect" onchange="onQrCameraChanged(this.value)"
+          class="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-extrabold text-slate-700 truncate">
+          <option value="">جاري البحث عن الكاميرات...</option>
+        </select>
+        <button onclick="refreshQrCamerasList(true)" title="تحديث قائمة الكاميرات المتصلة"
+          class="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 px-2.5 py-1.5 rounded-xl text-xs font-black shrink-0">
+          🔄
+        </button>
+      </div>
+
+      <!-- Auto Full Check-In & Final Check-Out Toggle -->
+      <label class="flex items-center justify-between gap-2 bg-amber-50 border border-amber-200 px-3 py-2 rounded-xl cursor-pointer">
+        <div>
+          <span class="block text-xs font-black text-amber-900">⚡ دخول وخروج نهائي تلقائي 100%</span>
+          <span class="block text-[10px] text-amber-700 font-bold">يسجل الدخول أو يغلق الجلسة ويقبض الحساب فوراً بدون تدخل</span>
+        </div>
+        <input id="autoFullScanToggle" type="checkbox" onchange="saveAutoScanPref(this.checked)" class="w-4 h-4 accent-amber-600 shrink-0">
+      </label>
+
+      <!-- Live Video Container -->
+      <div id="webcamReaderContainer" class="w-full rounded-2xl overflow-hidden border-2 border-sky-400 bg-slate-950 min-h-[190px]"></div>
+
+      <!-- Live Feedback Strip -->
+      <div id="webcamScanFeedback" class="text-[11px] font-extrabold text-sky-700 bg-sky-50 border border-sky-200 py-1.5 px-3 rounded-xl text-center">
+        جاري تشغيل الكاميرا...
       </div>
     </div>
   </div>
@@ -1064,8 +1143,79 @@ function calculateTimeCost(ms, hourlyRate) {
   return Math.max(500, Math.ceil(raw / 500) * 500);
 }
 
-// ==================== PERMISSIONS & AUTH ====================
-const SUPERUSER_RECOVERY_KEY = "Bigkam360QCM";
+// ==================== HIGH SECURITY: SHA-256 HASHING, ANTI-TAMPERING & AUTH ====================
+const SEC_SALT = "QC_DAMASCUS_2026_SECURE_SALT_#99";
+const SUPERUSER_HASH = "2d915d2bcb9e96e842c321a6e50f98a39727b31f73404a1923ea20e4ddb20d6b";
+let failedLoginAttempts = 0;
+let loginLockoutUntil = 0;
+let lastLocalMutationAt = 0;
+
+function sha256Fallback(ascii) {
+  function rightRotate(value, amount) { return (value >>> amount) | (value << (32 - amount)); }
+  const mathPow = Math.pow, maxWord = mathPow(2, 32);
+  let result = '', words = [], asciiBitLength = ascii.length * 8;
+  const hash = [], k = [];
+  let primeCounter = 0, isComposite = {};
+  for (let candidate = 2; primeCounter < 64; candidate++) {
+    if (!isComposite[candidate]) {
+      for (let i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+      hash[primeCounter] = (mathPow(candidate, .5) * maxWord) | 0;
+      k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+    }
+  }
+  ascii += '\x80';
+  while (ascii.length % 64 - 56) ascii += '\x00';
+  for (let i = 0; i < ascii.length; i++) {
+    const j = ascii.charCodeAt(i);
+    words[i >> 2] |= j << ((3 - i) % 4) * 8;
+  }
+  words[words.length] = ((asciiBitLength / maxWord) | 0);
+  words[words.length] = (asciiBitLength);
+  for (let j = 0; j < words.length;) {
+    const w = words.slice(j, j += 16);
+    const oldHash = hash.slice(0);
+    for (let i = 0; i < 64; i++) {
+      const w15 = w[i - 15], w2 = w[i - 2];
+      const a = hash[0], e = hash[4];
+      const temp1 = hash[7] + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) + ((e & hash[5]) ^ ((~e) & hash[6])) + k[i] +
+        (w[i] = (i < 16) ? w[i] : (w[i - 16] + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3)) + w[i - 7] + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))) | 0);
+      const temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+      hash.unshift((temp1 + temp2) | 0);
+      hash[4] = (hash[4] + temp1) | 0;
+      hash.pop();
+    }
+    for (let i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+  }
+  for (let i = 0; i < 8; i++) {
+    for (let j = 3; j + 1; j--) {
+      const b = (hash[i] >> (j * 8)) & 255;
+      result += ((b < 16) ? 0 : '') + b.toString(16);
+    }
+  }
+  return result;
+}
+
+async function computeSaltedHash(secret) {
+  const payload = SEC_SALT + String(secret || '');
+  try {
+    if (window.crypto && window.crypto.subtle) {
+      const encoded = new TextEncoder().encode(payload);
+      const buf = await window.crypto.subtle.digest('SHA-256', encoded);
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+  } catch (e) {}
+  return sha256Fallback(unescape(encodeURIComponent(payload)));
+}
+
+async function signSessionToken(userObj) {
+  return await computeSaltedHash(`${userObj.id}|${userObj.username}|${userObj.role}|SESSION_GUARD`);
+}
+
+async function verifySavedSession(userObj) {
+  if (!userObj || !userObj._sig) return false;
+  const expected = await signSessionToken(userObj);
+  return userObj._sig === expected;
+}
 
 function getOfficialUsers() {
   return (appState.users || []).filter(u =>
@@ -1073,12 +1223,21 @@ function getOfficialUsers() {
   );
 }
 
+function toggleForgotAccountPanel(showForgot) {
+  document.getElementById('standardLoginBox').classList.toggle('hidden', showForgot);
+  document.getElementById('forgotAccountBox').classList.toggle('hidden', !showForgot);
+  document.getElementById('loginErrorMsg').classList.add('hidden');
+  document.getElementById('superuserErrorMsg').classList.add('hidden');
+  if (showForgot) {
+    setTimeout(() => document.getElementById('superuserRecoveryInput').focus(), 60);
+  }
+}
+
 function syncAuthGate() {
   const officialUsers = getOfficialUsers();
   const overlay = document.getElementById('loginLockOverlay');
   const logoutBtn = document.getElementById('btnHeaderLockLogout');
 
-  // If no official user has been created yet, open the system directly in First-Time Setup mode
   if (officialUsers.length === 0) {
     if (!currentLoggedUser || currentLoggedUser.isSetupMode) {
       currentLoggedUser = { id: 0, username: 'setup', role: 'admin', label: 'وضع الإعداد الأولي', isSetupMode: true };
@@ -1090,7 +1249,6 @@ function syncAuthGate() {
     return;
   }
 
-  // Official users exist: enforce login lock unless already authenticated in this session
   if (logoutBtn) logoutBtn.classList.remove('hidden');
   if (currentLoggedUser && !currentLoggedUser.isSetupMode) {
     overlay.classList.add('hidden');
@@ -1107,65 +1265,124 @@ function syncAuthGate() {
 function canWrite(requireAdmin = false) {
   if (!currentLoggedUser) return false;
   if (currentLoggedUser.role === 'viewer') {
+    SoundFX.error();
     alert('حسابك بوضع (مشاهدة فقط) ولا يملك صلاحية التعديل أو الإضافة.');
     return false;
   }
   if (requireAdmin && currentLoggedUser.role !== 'admin') {
+    SoundFX.error();
     alert('هذه الصلاحية مخصصة للمدير العام فقط.');
     return false;
   }
   return true;
 }
 
-function attemptSystemLogin() {
-  const u = document.getElementById('loginUsernameInput').value.trim();
-  const p = document.getElementById('loginPasswordInput').value.trim();
-
-  // Emergency Superuser Recovery Override
-  if (p === SUPERUSER_RECOVERY_KEY || u === SUPERUSER_RECOVERY_KEY) {
-    document.getElementById('loginErrorMsg').classList.add('hidden');
-    currentLoggedUser = {
-      id: -1,
-      username: 'superuser',
-      role: 'admin',
-      label: 'سوبر يوزر (دخول طوارئ)',
-      isSuperuser: true
-    };
-    sessionStorage.setItem('qc_logged_user', JSON.stringify(currentLoggedUser));
-    document.getElementById('loginUsernameInput').value = '';
-    document.getElementById('loginPasswordInput').value = '';
-    applyRolePermissionsUI();
-    const overlay = document.getElementById('loginLockOverlay');
-    overlay.classList.add('hidden');
-    overlay.classList.remove('flex');
-    return;
-  }
-
-  const officialUsers = getOfficialUsers();
-  const found = officialUsers.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p);
-  if (!found) {
-    document.getElementById('loginErrorMsg').classList.remove('hidden');
-    return;
-  }
-  document.getElementById('loginErrorMsg').classList.add('hidden');
-  currentLoggedUser = found;
-  sessionStorage.setItem('qc_logged_user', JSON.stringify(found));
-  document.getElementById('loginUsernameInput').value = '';
-  document.getElementById('loginPasswordInput').value = '';
+async function grantAuthenticatedSession(userObj) {
+  userObj._sig = await signSessionToken(userObj);
+  currentLoggedUser = userObj;
+  sessionStorage.setItem('qc_logged_user', JSON.stringify(userObj));
+  failedLoginAttempts = 0;
+  SoundFX.success();
   applyRolePermissionsUI();
   const overlay = document.getElementById('loginLockOverlay');
   overlay.classList.add('hidden');
   overlay.classList.remove('flex');
 }
 
-function logoutSystemUser() {
-  if (getOfficialUsers().length === 0) {
-    alert('لم تقم بإنشاء أي حساب رسمي بعد. أنشئ حسابك من تبويب (الأسعار والمستخدمين) ليتم تفعيل القفل.');
+async function attemptSuperuserRecovery() {
+  const now = Date.now();
+  if (now < loginLockoutUntil) {
+    const secs = Math.ceil((loginLockoutUntil - now) / 1000);
+    return alert(`تم إيقاف المحاولات مؤقتاً للحماية. انتظر ${secs} ثانية.`);
+  }
+  const keyVal = document.getElementById('superuserRecoveryInput').value.trim();
+  const keyHash = await computeSaltedHash(keyVal);
+  if (keyHash !== SUPERUSER_HASH) {
+    failedLoginAttempts++;
+    SoundFX.error();
+    if (failedLoginAttempts >= 5) loginLockoutUntil = Date.now() + 30000;
+    document.getElementById('superuserErrorMsg').classList.remove('hidden');
     return;
   }
+  document.getElementById('superuserErrorMsg').classList.add('hidden');
+  document.getElementById('superuserRecoveryInput').value = '';
+  toggleForgotAccountPanel(false);
+  await grantAuthenticatedSession({
+    id: -1,
+    username: 'superuser',
+    role: 'admin',
+    label: 'سوبر يوزر (دخول طوارئ)',
+    isSuperuser: true
+  });
+}
+
+async function attemptSystemLogin() {
+  const now = Date.now();
+  if (now < loginLockoutUntil) {
+    const secs = Math.ceil((loginLockoutUntil - now) / 1000);
+    return alert(`تم قفل تسجيل الدخول مؤقتاً بعد عدة محاولات خاطئة. انتظر ${secs} ثانية.`);
+  }
+
+  const u = document.getElementById('loginUsernameInput').value.trim();
+  const p = document.getElementById('loginPasswordInput').value.trim();
+  const inputHash = await computeSaltedHash(p);
+
+  if (inputHash === SUPERUSER_HASH) {
+    document.getElementById('loginErrorMsg').classList.add('hidden');
+    document.getElementById('loginUsernameInput').value = '';
+    document.getElementById('loginPasswordInput').value = '';
+    await grantAuthenticatedSession({
+      id: -1,
+      username: 'superuser',
+      role: 'admin',
+      label: 'سوبر يوزر (دخول طوارئ)',
+      isSuperuser: true
+    });
+    return;
+  }
+
+  const officialUsers = getOfficialUsers();
+  let found = null;
+  let migratedLegacy = false;
+
+  for (const acc of officialUsers) {
+    if (acc.username.toLowerCase() === u.toLowerCase()) {
+      if (acc.passwordHash && acc.passwordHash === inputHash) {
+        found = acc;
+        break;
+      } else if (acc.password && acc.password === p) {
+        acc.passwordHash = inputHash;
+        delete acc.password;
+        found = acc;
+        migratedLegacy = true;
+        break;
+      }
+    }
+  }
+
+  if (!found) {
+    failedLoginAttempts++;
+    SoundFX.error();
+    if (failedLoginAttempts >= 5) {
+      loginLockoutUntil = Date.now() + 30000;
+      alert('تم إدخال بيانات خاطئة 5 مرات! تم قفل الدخول لمدة 30 ثانية للحماية.');
+    }
+    document.getElementById('loginErrorMsg').classList.remove('hidden');
+    return;
+  }
+
+  document.getElementById('loginErrorMsg').classList.add('hidden');
+  document.getElementById('loginUsernameInput').value = '';
+  document.getElementById('loginPasswordInput').value = '';
+  if (migratedLegacy) pushStateToCloud();
+  await grantAuthenticatedSession({ ...found });
+}
+
+function logoutSystemUser() {
+  SoundFX.click();
   currentLoggedUser = null;
   sessionStorage.removeItem('qc_logged_user');
-  document.getElementById('loginPasswordInput').value = '';
+  toggleForgotAccountPanel(false);
   const overlay = document.getElementById('loginLockOverlay');
   overlay.classList.remove('hidden');
   overlay.classList.add('flex');
@@ -1188,8 +1405,31 @@ function applyRolePermissionsUI() {
   }
 }
 
-// ==================== CLOUD SYNC (FIREBASE REST) ====================
+// ==================== CLOUD SYNC (INPUT-SAFE NON-DESTRUCTIVE REST) ====================
+let pendingDeferredRender = false;
+
+function isUserActivelyEditing() {
+  const el = document.activeElement;
+  if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
+    if (el.id !== 'barcodeInput' && el.id !== 'qrCameraSelect') return true;
+  }
+  const blockingModals = ['newSessionModal', 'sessionDetailModal', 'addCustomerModal', 'newSubModal', 'dailyCloseModal'];
+  for (const mId of blockingModals) {
+    const mEl = document.getElementById(mId);
+    if (mEl && !mEl.classList.contains('hidden')) return true;
+  }
+  return false;
+}
+
+document.addEventListener('focusout', () => {
+  if (pendingDeferredRender && !isUserActivelyEditing()) {
+    pendingDeferredRender = false;
+    renderAll();
+  }
+});
+
 async function pushStateToCloud() {
+  lastLocalMutationAt = Date.now();
   localStorage.setItem('qc_admin_state', JSON.stringify(appState));
   updateCloudBadge('syncing', 'جاري الحفظ...');
   try {
@@ -1202,6 +1442,7 @@ async function pushStateToCloud() {
     if (serverDate) serverTimeOffset = new Date(serverDate).getTime() - Date.now();
     if (res.ok) {
       lastCloudHash = JSON.stringify(appState);
+      lastLocalMutationAt = Date.now();
       updateCloudBadge('online', 'متصل ومزامن');
     } else {
       updateCloudBadge('error', 'خطأ صلاحيات');
@@ -1213,6 +1454,7 @@ async function pushStateToCloud() {
 
 async function pullStateFromCloud(initial = false) {
   if (isSyncing) return;
+  if (!initial && (Date.now() - lastLocalMutationAt) < 5500) return;
   isSyncing = true;
   try {
     const res = await fetch(`${FIREBASE_DB_URL}/qc_data.json`);
@@ -1222,6 +1464,7 @@ async function pullStateFromCloud(initial = false) {
       const cloudData = await res.json();
       updateCloudBadge('online', 'متصل ومزامن');
       if (cloudData) {
+        if (!initial && (Date.now() - lastLocalMutationAt) < 5500) return;
         const incomingHash = JSON.stringify(cloudData);
         if (incomingHash !== lastCloudHash) {
           appState = {
@@ -1243,10 +1486,14 @@ async function pullStateFromCloud(initial = false) {
             products: cloudData.products || appState.products,
             settings: { ...appState.settings, ...(cloudData.settings || {}) }
           };
-          lastCloudHash = JSON.stringify(appState);
+          lastCloudHash = incomingHash;
           localStorage.setItem('qc_admin_state', lastCloudHash);
           syncAuthGate();
-          renderAll();
+          if (!initial && isUserActivelyEditing()) {
+            pendingDeferredRender = true;
+          } else {
+            renderAll();
+          }
         }
       } else if (initial) {
         await pushStateToCloud();
@@ -1322,71 +1569,317 @@ function generateSimpleNumericCode(customersList) {
   return String(maxNum + 1);
 }
 
-function playScanBeep() {
+// ==================== ACCOUNTING SOFTWARE SOUND ENGINE (WEB AUDIO API) ====================
+let systemSoundsEnabled = localStorage.getItem('qc_sounds_enabled') !== 'false';
+let sharedAudioCtx = null;
+
+function getAudioCtx() {
+  if (!sharedAudioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) sharedAudioCtx = new AudioContextClass();
+  }
+  if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
+    sharedAudioCtx.resume().catch(() => {});
+  }
+  return sharedAudioCtx;
+}
+
+function playToneSequence(notes, waveType = 'sine', masterGain = 0.7) {
+  if (!systemSoundsEnabled) return;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.14);
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    let offset = 0;
+    notes.forEach(([freq, dur, vol = 1.0]) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = waveType;
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + offset);
+      gain.gain.setValueAtTime(0.001, ctx.currentTime + offset);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.01, masterGain * vol), ctx.currentTime + offset + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + offset);
+      osc.stop(ctx.currentTime + offset + dur + 0.01);
+      offset += dur * 0.85;
+    });
   } catch (e) {}
 }
 
+const SoundFX = {
+  // Loud, crisp Check-In barcode scanner chime
+  scanCheckIn() {
+    playToneSequence([[987.77, 0.11, 1.0], [1479.98, 0.18, 1.0]], 'triangle', 0.88);
+  },
+  // Loud Cash-Register "Cha-Ching" for Final Check-Out
+  scanCheckOut() {
+    playToneSequence([
+      [1046.50, 0.09, 0.95],
+      [1318.51, 0.09, 0.95],
+      [1567.98, 0.11, 1.0],
+      [2093.00, 0.28, 1.0]
+    ], 'triangle', 0.92);
+  },
+  // Distinct Loud Error Double-Buzz when QR code is invalid / not found
+  scanError() {
+    playToneSequence([[195, 0.16, 1.0], [145, 0.24, 1.0]], 'sawtooth', 0.88);
+  },
+  // Crisp accounting software button / tab click
+  click() {
+    playToneSequence([[740, 0.035, 0.35]], 'sine', 0.45);
+  },
+  // Pop sound when adding drinks/items
+  itemAdd() {
+    playToneSequence([[660, 0.06, 0.65], [990, 0.09, 0.75]], 'triangle', 0.65);
+  },
+  // Confirmation chord for saving data
+  success() {
+    playToneSequence([[587.33, 0.08, 0.7], [880.00, 0.15, 0.8]], 'sine', 0.75);
+  },
+  // Soft descending tone for delete
+  remove() {
+    playToneSequence([[440, 0.07, 0.55], [311, 0.11, 0.55]], 'sine', 0.6);
+  }
+};
+
+function toggleSystemSounds() {
+  systemSoundsEnabled = !systemSoundsEnabled;
+  localStorage.setItem('qc_sounds_enabled', systemSoundsEnabled ? 'true' : 'false');
+  updateSoundToggleUI();
+  if (systemSoundsEnabled) SoundFX.success();
+}
+
+function updateSoundToggleUI() {
+  const icon = document.getElementById('soundStatusIcon');
+  if (icon) icon.textContent = systemSoundsEnabled ? '🔊' : '🔇';
+}
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (btn && btn.id !== 'btnToggleSystemSounds') {
+    SoundFX.click();
+  }
+}, true);
+
+// ==================== TOAST NOTIFICATION HELPER ====================
+let scanToastTimer = null;
+function showScanToast(title, sub, variant = 'info') {
+  const banner = document.getElementById('scanToastBanner');
+  const inner = document.getElementById('scanToastInner');
+  const iconEl = document.getElementById('scanToastIcon');
+  document.getElementById('scanToastTitle').textContent = title;
+  document.getElementById('scanToastSub').textContent = sub;
+
+  const variants = {
+    checkin: { cls: 'bg-emerald-950 text-white border-emerald-400', icon: '🟢' },
+    checkout: { cls: 'bg-amber-950 text-white border-amber-400', icon: '💰' },
+    error: { cls: 'bg-rose-950 text-white border-rose-500', icon: '⚠️' },
+    info: { cls: 'bg-slate-900 text-white border-sky-400', icon: '✅' }
+  };
+  const v = variants[variant] || variants.info;
+  inner.className = `px-5 py-3.5 rounded-2xl shadow-2xl border-2 flex items-center gap-3 ${v.cls}`;
+  iconEl.textContent = v.icon;
+
+  banner.classList.remove('hidden');
+  clearTimeout(scanToastTimer);
+  scanToastTimer = setTimeout(() => banner.classList.add('hidden'), 4200);
+}
+
+// ==================== HIGH-PRECISION ALWAYS-ON MULTI-CAMERA QR SCANNER ====================
 let html5QrScannerInstance = null;
 let lastScannedToken = "";
 let lastScannedAt = 0;
+let isQrDockMinimized = false;
 
-async function openWebcamScannerModal() {
-  openModal('webcamScannerModal');
+function saveAutoScanPref(enabled) {
+  localStorage.setItem('qc_auto_full_scan', enabled ? 'true' : 'false');
+}
+
+function toggleMinimizeQrDock() {
+  isQrDockMinimized = !isQrDockMinimized;
+  const body = document.getElementById('webcamDockBody');
+  const btn = document.getElementById('btnMinimizeQrDock');
+  const dock = document.getElementById('webcamScannerDock');
+  if (isQrDockMinimized) {
+    body.classList.add('hidden');
+    dock.classList.remove('w-80', 'sm:w-96');
+    dock.classList.add('w-64');
+    btn.textContent = '🗖 إظهار';
+  } else {
+    body.classList.remove('hidden');
+    dock.classList.add('w-80', 'sm:w-96');
+    dock.classList.remove('w-64');
+    btn.textContent = '🗕 خلفية';
+  }
+}
+
+async function refreshQrCamerasList(restartAfter = false) {
+  const sel = document.getElementById('qrCameraSelect');
+  try {
+    const devices = await Html5Qrcode.getCameras();
+    if (!devices || devices.length === 0) {
+      sel.innerHTML = '<option value="">لم يتم العثور على كاميرا متصلة</option>';
+      return null;
+    }
+    const savedCamId = localStorage.getItem('qc_preferred_camera_id') || '';
+    sel.innerHTML = devices.map((cam, idx) => {
+      const label = cam.label || `كاميرا ${idx + 1} (USB / مدمجة)`;
+      const selected = cam.id === savedCamId ? 'selected' : '';
+      return `<option value="${cam.id}" ${selected}>📷 ${label}</option>`;
+    }).join('');
+
+    const chosenId = sel.value || devices[0].id;
+    localStorage.setItem('qc_preferred_camera_id', chosenId);
+    if (restartAfter) {
+      await startQrStreamWithCamera(chosenId);
+    }
+    return chosenId;
+  } catch (e) {
+    sel.innerHTML = '<option value="default">📷 الكاميرا الافتراضية</option>';
+    return 'default';
+  }
+}
+
+async function onQrCameraChanged(camId) {
+  if (!camId) return;
+  localStorage.setItem('qc_preferred_camera_id', camId);
+  await startQrStreamWithCamera(camId);
+}
+
+async function startQrStreamWithCamera(camId) {
   const fb = document.getElementById('webcamScanFeedback');
-  fb.textContent = 'جاري تشغيل كاميرا اللابتوب...';
-  fb.className = 'text-xs font-extrabold text-sky-700 bg-sky-50 border border-sky-200 py-2 px-3 rounded-xl';
+  fb.textContent = 'جاري تشغيل الكاميرا بدقة عالية...';
+  fb.className = 'text-[11px] font-extrabold text-sky-700 bg-sky-50 border border-sky-200 py-1.5 px-3 rounded-xl text-center';
+
+  if (html5QrScannerInstance) {
+    try { await html5QrScannerInstance.stop(); } catch (e) {}
+    try { html5QrScannerInstance.clear(); } catch (e) {}
+    html5QrScannerInstance = null;
+  }
+
+  const formats = typeof Html5QrcodeSupportedFormats !== 'undefined'
+    ? [Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.EAN_13]
+    : undefined;
+
+  html5QrScannerInstance = new Html5Qrcode("webcamReaderContainer", {
+    formatsToSupport: formats,
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+    verbose: false
+  });
+
+  const scanConfig = {
+    fps: 24,
+    qrbox: (viewW, viewH) => {
+      const edge = Math.max(150, Math.floor(Math.min(viewW, viewH) * 0.74));
+      return { width: edge, height: edge };
+    },
+    aspectRatio: 1.333334
+  };
+
+  const onDecodeSuccess = (decodedText) => {
+    const now = Date.now();
+    if (decodedText === lastScannedToken && (now - lastScannedAt) < 2600) return;
+    lastScannedToken = decodedText;
+    lastScannedAt = now;
+    fb.textContent = `✓ تم مسح الكود: ${decodedText}`;
+    fb.className = 'text-[11px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 py-1.5 px-3 rounded-xl text-center';
+    handleBarcodeScan(decodedText, true);
+  };
 
   try {
-    if (html5QrScannerInstance) {
-      try { await html5QrScannerInstance.stop(); } catch (e) {}
-    }
-    html5QrScannerInstance = new Html5Qrcode("webcamReaderContainer");
-    await html5QrScannerInstance.start(
-      { facingMode: "environment" },
-      { fps: 12, qrbox: { width: 210, height: 210 } },
-      (decodedText) => {
-        const now = Date.now();
-        if (decodedText === lastScannedToken && (now - lastScannedAt) < 2800) return;
-        lastScannedToken = decodedText;
-        lastScannedAt = now;
-        playScanBeep();
-        fb.textContent = `✓ تم قراءة الكود: ${decodedText}`;
-        fb.className = 'text-xs font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 py-2 px-3 rounded-xl';
-        closeWebcamScannerModal();
-        handleBarcodeScan(decodedText);
-      },
-      () => {}
-    );
-    fb.textContent = 'الكاميرا جاهزة — قرّب كود QR من الشاشة';
+    const cameraConstraint = (camId && camId !== 'default')
+      ? { deviceId: { exact: camId } }
+      : { facingMode: "environment" };
+
+    await html5QrScannerInstance.start(cameraConstraint, scanConfig, onDecodeSuccess, () => {});
+    fb.textContent = '🟢 الكاميرا نشطة بدقة عالية — جاهزة للمسح المستمر';
+    fb.className = 'text-[11px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 py-1.5 px-3 rounded-xl text-center';
   } catch (err) {
-    fb.textContent = 'تعذر الوصول للكاميرا! تأكد من توصيل الويب كام ومنح إذن الكاميرا للمتصفح.';
-    fb.className = 'text-xs font-extrabold text-rose-700 bg-rose-50 border border-rose-200 py-2 px-3 rounded-xl';
+    try {
+      await html5QrScannerInstance.start({ facingMode: "user" }, scanConfig, onDecodeSuccess, () => {});
+      fb.textContent = '🟢 الكاميرا نشطة — جاهزة للمسح المستمر';
+    } catch (err2) {
+      SoundFX.scanError();
+      fb.textContent = '⚠️ تعذر تشغيل الكاميرا! تحقق من التوصيل وأذونات المتصفح.';
+      fb.className = 'text-[11px] font-extrabold text-rose-700 bg-rose-50 border border-rose-200 py-1.5 px-3 rounded-xl text-center';
+    }
   }
+}
+
+async function openWebcamScannerModal() {
+  const dock = document.getElementById('webcamScannerDock');
+  dock.classList.remove('hidden');
+  if (isQrDockMinimized) toggleMinimizeQrDock();
+
+  const autoPref = localStorage.getItem('qc_auto_full_scan') === 'true';
+  document.getElementById('autoFullScanToggle').checked = autoPref;
+
+  const camId = await refreshQrCamerasList(false);
+  await startQrStreamWithCamera(camId);
 }
 
 async function closeWebcamScannerModal() {
   if (html5QrScannerInstance) {
-    try {
-      await html5QrScannerInstance.stop();
-      html5QrScannerInstance.clear();
-    } catch (e) {}
+    try { await html5QrScannerInstance.stop(); } catch (e) {}
+    try { html5QrScannerInstance.clear(); } catch (e) {}
     html5QrScannerInstance = null;
   }
-  closeModal('webcamScannerModal');
+  document.getElementById('webcamScannerDock').classList.add('hidden');
 }
 
-function handleBarcodeScan(rawVal) {
+function finalizeCustomerSessionCheckout(session, mode = 'cash') {
+  const now = getTrueNow();
+  const elapsed = now - session.startTime;
+  const hoursSpent = Math.max(0.25, +(elapsed / 3600000).toFixed(2));
+  const ordersTotal = (session.orders || []).reduce((sum, o) => sum + o.price, 0);
+  let timeCost = calculateTimeCost(elapsed, appState.settings.hourlyRate);
+  let note = `جلسة دراسة (${formatDuration(elapsed)}) + طلبات (${ordersTotal.toLocaleString()})`;
+
+  const cust = appState.customers.find(c => c.id === session.customerId);
+
+  if (mode === 'free' && cust && (cust.freeHours || 0) >= 1) {
+    const freeUsed = Math.min(cust.freeHours, Math.ceil(hoursSpent));
+    cust.freeHours = +(cust.freeHours - freeUsed).toFixed(2);
+    timeCost = 0;
+    note = `جلسة مجانية من رصيد المكافآت (${freeUsed} ساعة) + طلبات (${ordersTotal.toLocaleString()})`;
+  } else if (mode === 'sub') {
+    const sub = appState.subscriptions.find(s =>
+      s.customerId === session.customerId && s.remainingHours > 0 && (!s.expiresAt || s.expiresAt > now)
+    );
+    if (sub) {
+      sub.remainingHours = Math.max(0, +(sub.remainingHours - hoursSpent).toFixed(2));
+      timeCost = 0;
+      note = `خصم من باقة (${sub.packageName}) بمقدار ${hoursSpent} ساعة + طلبات`;
+    }
+  }
+
+  if (cust) {
+    cust.totalLifetimeHours = +((cust.totalLifetimeHours || 0) + hoursSpent).toFixed(2);
+    if (mode === 'cash') {
+      cust.accumulatedHours = +((cust.accumulatedHours || 0) + hoursSpent).toFixed(2);
+      checkAndAwardLoyalty(cust);
+    }
+  }
+
+  const grandTotal = timeCost + ordersTotal;
+  appState.daily.unshift({
+    id: Date.now(),
+    date: formatDateTime12(now),
+    isoDate: new Date(now).toISOString().slice(0, 10),
+    type: 'جلسة دراسة',
+    title: `${session.customerName} - ${note}`,
+    amount: grandTotal
+  });
+
+  session.checkedOut = true;
+  session.endTime = now;
+  session.finalDuration = formatDuration(elapsed);
+  session.finalAmount = grandTotal;
+  return grandTotal;
+}
+
+function handleBarcodeScan(rawVal, fromCamera = false) {
   const cleanRaw = String(rawVal || '').trim();
   const normalized = cleanRaw.toUpperCase().replace(/^QC-/, '');
   document.getElementById('barcodeInput').value = '';
@@ -1399,15 +1892,46 @@ function handleBarcodeScan(rawVal) {
   });
 
   if (!customer) {
-    alert(`لم يتم العثور على زبون بالكود أو الرقم: ${rawVal}`);
+    SoundFX.scanError();
+    const fb = document.getElementById('webcamScanFeedback');
+    if (fb) {
+      fb.textContent = `❌ كود غير مسجل: ${cleanRaw}`;
+      fb.className = 'text-[11px] font-extrabold text-rose-700 bg-rose-50 border border-rose-200 py-1.5 px-3 rounded-xl text-center';
+    }
+    showScanToast('كود غير معروف!', `لم يتم العثور على زبون بالكود: ${cleanRaw}`, 'error');
+    if (!fromCamera) alert(`لم يتم العثور على زبون بالكود أو الرقم: ${rawVal}`);
     return;
   }
 
   const existingActiveSession = appState.sessions.find(s => s.customerId === customer.id && !s.checkedOut);
+  const autoFullMode = document.getElementById('autoFullScanToggle') && document.getElementById('autoFullScanToggle').checked;
+
   if (existingActiveSession) {
-    openSessionDetail(existingActiveSession.id);
+    if (autoFullMode) {
+      if (!canWrite(false)) return;
+      const grandTotal = finalizeCustomerSessionCheckout(existingActiveSession, 'cash');
+      SoundFX.scanCheckOut();
+      pushStateToCloud();
+      renderAll();
+      showScanToast(
+        `خروج نهائي: ${customer.name}`,
+        `المدة: ${existingActiveSession.finalDuration} • المقبوض: ${grandTotal.toLocaleString()} ل.س`,
+        'checkout'
+      );
+    } else {
+      SoundFX.scanCheckIn();
+      openSessionDetail(existingActiveSession.id);
+    }
   } else {
+    if (!canWrite(false)) return;
     startSessionForCustomer(customer);
+    SoundFX.scanCheckIn();
+    showScanToast(
+      `تم تسجيل دخول: ${customer.name}`,
+      `كود العضوية: #${customer.code} • بدأ العداد الآن`,
+      'checkin'
+    );
+    if (!fromCamera) switchTab('live');
   }
 }
 
@@ -1649,55 +2173,8 @@ function checkoutSession(mode) {
   const session = appState.sessions.find(s => s.id === selectedSessionId);
   if (!session || session.checkedOut) return;
 
-  const now = getTrueNow();
-  const elapsed = now - session.startTime;
-  const hoursSpent = Math.max(0.25, +(elapsed / 3600000).toFixed(2));
-  const ordersTotal = (session.orders || []).reduce((sum, o) => sum + o.price, 0);
-  let timeCost = calculateTimeCost(elapsed, appState.settings.hourlyRate);
-  let note = `جلسة دراسة (${formatDuration(elapsed)}) + طلبات (${ordersTotal.toLocaleString()})`;
-
-  const cust = appState.customers.find(c => c.id === session.customerId);
-
-  if (mode === 'free' && cust && (cust.freeHours || 0) >= 1) {
-    const freeUsed = Math.min(cust.freeHours, Math.ceil(hoursSpent));
-    cust.freeHours = +(cust.freeHours - freeUsed).toFixed(2);
-    timeCost = 0;
-    note = `جلسة مجانية من رصيد المكافآت (${freeUsed} ساعة) + طلبات (${ordersTotal.toLocaleString()})`;
-  } else if (mode === 'sub') {
-    const sub = appState.subscriptions.find(s =>
-      s.customerId === session.customerId && s.remainingHours > 0 && (!s.expiresAt || s.expiresAt > now)
-    );
-    if (sub) {
-      sub.remainingHours = Math.max(0, +(sub.remainingHours - hoursSpent).toFixed(2));
-      timeCost = 0;
-      note = `خصم من باقة (${sub.packageName}) بمقدار ${hoursSpent} ساعة + طلبات`;
-    }
-  }
-
-  if (cust) {
-    cust.totalLifetimeHours = +((cust.totalLifetimeHours || 0) + hoursSpent).toFixed(2);
-    if (mode === 'cash') {
-      cust.accumulatedHours = +((cust.accumulatedHours || 0) + hoursSpent).toFixed(2);
-      checkAndAwardLoyalty(cust);
-    }
-  }
-
-  const grandTotal = timeCost + ordersTotal;
-  appState.daily.unshift({
-    id: Date.now(),
-    date: formatDateTime12(now),
-    isoDate: new Date(now).toISOString().slice(0, 10),
-    type: 'جلسة دراسة',
-    title: `${session.customerName} - ${note}`,
-    amount: grandTotal
-  });
-
-  // Keep customer card in Live View marked in RED as "تم تسجيل الخروج"
-  session.checkedOut = true;
-  session.endTime = now;
-  session.finalDuration = formatDuration(elapsed);
-  session.finalAmount = grandTotal;
-
+  finalizeCustomerSessionCheckout(session, mode);
+  SoundFX.scanCheckOut();
   closeModal('sessionDetailModal');
   pushStateToCloud();
   renderAll();
@@ -1726,6 +2203,14 @@ function renderHallTab() {
   const container = document.getElementById('hallBookingContainer');
 
   if (!appState.hallSession) {
+    const existingSelect = document.getElementById('hallCustomerSelect');
+    if (existingSelect) {
+      const prevVal = existingSelect.value;
+      existingSelect.innerHTML = `<option value="">-- مستأجر خارجي / إدخال يدوي --</option>` +
+        appState.customers.map(c => `<option value="${c.id}">${c.name} (${c.phone} - ${c.code})</option>`).join('');
+      existingSelect.value = prevVal;
+      return;
+    }
     container.innerHTML = `
       <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm max-w-xl space-y-4">
         <div class="flex items-center gap-3 text-amber-600">
@@ -2313,10 +2798,12 @@ function saveWifiSettings() {
   if (!canWrite(false)) return;
   const active = document.getElementById('wifiActiveCheck').checked;
   const ssid = document.getElementById('wifiSsidInput').value.trim();
-  const password = document.getElementById('wifiPasswordInput').value;
-  const security = document.getElementById('wifiSecuritySelect').value;
+  const password = document.getElementById('wifiPasswordInput').value.trim();
+  let security = document.getElementById('wifiSecuritySelect').value;
   if (active && !ssid) return alert('يرجى إدخال اسم شبكة الواي فاي (SSID)');
+  if (!password) security = 'nopass';
   appState.wifi = { active, ssid, password, security };
+  SoundFX.success();
   pushStateToCloud();
   alert('تم حفظ إعدادات شبكة الواي فاي وتحديثها في صفحة الزبون بنجاح!');
 }
@@ -2676,7 +3163,7 @@ function renderSettingsTab() {
         <div>
           <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full ${rl.cls}">${rl.text}</span>
           <h4 class="font-extrabold text-slate-800 text-sm mt-1">${u.label}</h4>
-          <p class="text-xs text-slate-500 font-mono" dir="ltr">User: ${u.username} | Pass: ${u.password}</p>
+          <p class="text-xs text-slate-500 font-mono" dir="ltr">User: ${u.username} | 🔒 مشفر SHA-256</p>
         </div>
         <button onclick="deleteSystemUser(${u.id})" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-1 rounded-xl font-bold text-xs transition">🗑️ حذف</button>
       </div>
@@ -2740,7 +3227,7 @@ function deleteProductItem(id) {
   renderSettingsTab();
 }
 
-function addSystemUser() {
+async function addSystemUser() {
   if (!canWrite(true)) return;
   const label = document.getElementById('newUserLabelInput').value.trim();
   const username = document.getElementById('newUserNameInput').value.trim();
@@ -2748,28 +3235,27 @@ function addSystemUser() {
   const role = document.getElementById('newUserRoleInput').value;
   if (!label || !username || !password) return alert('أدخل الاسم واسم الدخول وكلمة المرور');
 
-  // Remove any legacy default admin/123 placeholder if present
   appState.users = getOfficialUsers();
 
   if (appState.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
     return alert('اسم الدخول مستخدم بالفعل!');
   }
-  const createdUser = { id: Date.now(), label, username, password, role };
+  const passwordHash = await computeSaltedHash(password);
+  const createdUser = { id: Date.now(), label, username, passwordHash, role };
   appState.users.push(createdUser);
 
-  // If user was in initial open setup mode, automatically log them into their new official account
   if (currentLoggedUser && currentLoggedUser.isSetupMode) {
-    currentLoggedUser = createdUser;
-    sessionStorage.setItem('qc_logged_user', JSON.stringify(createdUser));
+    await grantAuthenticatedSession({ ...createdUser });
   }
 
   document.getElementById('newUserLabelInput').value = '';
   document.getElementById('newUserNameInput').value = '';
   document.getElementById('newUserPassInput').value = '';
+  SoundFX.success();
   syncAuthGate();
   pushStateToCloud();
   renderSettingsTab();
-  alert('تم إنشاء الحساب الرسمي وتفعيل الحماية بنجاح! سيطلب النظام تسجيل الدخول عند كل فتح جديد.');
+  alert('تم إنشاء الحساب وتشفير كلمة المرور بنجاح! سيطلب النظام تسجيل الدخول عند كل فتح جديد.');
 }
 
 function deleteSystemUser(id) {
@@ -2952,7 +3438,8 @@ setInterval(() => {
 setInterval(() => pullStateFromCloud(false), 4000);
 
 // Initial Boot
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
+  updateSoundToggleUI();
   const cached = localStorage.getItem('qc_admin_state');
   if (cached) {
     try { appState = { ...appState, ...JSON.parse(cached) }; } catch(e) {}
@@ -2960,7 +3447,12 @@ window.addEventListener('DOMContentLoaded', () => {
   const savedUser = sessionStorage.getItem('qc_logged_user');
   if (savedUser) {
     try {
-      currentLoggedUser = JSON.parse(savedUser);
+      const parsed = JSON.parse(savedUser);
+      if (await verifySavedSession(parsed)) {
+        currentLoggedUser = parsed;
+      } else {
+        sessionStorage.removeItem('qc_logged_user');
+      }
     } catch(e) {}
   }
   syncAuthGate();
