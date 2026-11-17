@@ -165,13 +165,13 @@
             </div>
           </div>
 
-          <div class="bg-slate-50/70 border-2 border-dashed border-slate-200 rounded-2xl p-3 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <div class="bg-white p-2 rounded-xl border border-slate-100 flex flex-col items-center">
-              <svg id="memberBarcodeSvg"></svg>
-            </div>
-            <div class="bg-white p-2.5 rounded-xl border border-slate-100 flex flex-col items-center">
+          <div class="bg-slate-50/80 border-2 border-dashed border-sky-200 rounded-2xl p-4 flex flex-col items-center justify-center gap-3.5">
+            <div class="bg-white p-3.5 rounded-2xl border-2 border-sky-200 shadow-md flex flex-col items-center">
               <div id="memberQrCodeBox"></div>
-              <span class="text-[9px] text-slate-400 font-bold mt-1">كود الكاميرا QR</span>
+              <span class="text-[11px] text-sky-700 font-black mt-2">📷 قرّب هذا الكود للكاميرا للدخول / الخروج</span>
+            </div>
+            <div class="bg-white px-3 py-2 rounded-xl border border-slate-200 flex flex-col items-center">
+              <svg id="memberBarcodeSvg"></svg>
             </div>
           </div>
           <p class="text-[11px] text-slate-500 font-bold">وجّه كود الـ QR لكاميرا الكاشير أو أعطِهِ رقمك السريع</p>
@@ -409,20 +409,43 @@ function switchAuthMode(mode) {
   document.getElementById('phoneLoginFormBox').classList.toggle('hidden', isReg);
 }
 
+let pubData = null;
+let currentMember = null;
+const pKey = p => String(p || '').replace(/[^0-9+]/g, '');
+const cKey = c => String(c || '').replace(/[^A-Za-z0-9_-]/g, '');
+const cleanTxt = (s, max) => String(s == null ? '' : s).replace(/[<>]/g, ' ').trim().slice(0, max);
+function maskPhone(p) {
+  const s = String(p || '').replace(/\s+/g, '');
+  return s.length > 5 ? s.slice(0, 2) + '•'.repeat(s.length - 5) + s.slice(-3) : s;
+}
+
+async function dbGet(path) {
+  const res = await fetch(`${FIREBASE_DB_URL}/${path}.json`);
+  const serverDate = res.headers.get('Date');
+  if (serverDate) serverTimeOffset = new Date(serverDate).getTime() - Date.now();
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return await res.json();
+}
+
+function buildCloudData(member) {
+  cloudData = {
+    ...(pubData || {}),
+    customers: member && member.c ? [member.c] : [],
+    subscriptions: member && member.sub ? [member.sub] : [],
+    sessions: member && member.session ? [member.session] : []
+  };
+}
+
 async function syncWithCloud() {
   try {
-    const res = await fetch(`${FIREBASE_DB_URL}/qc_data.json`);
-    const serverDate = res.headers.get('Date');
-    if (serverDate) {
-      serverTimeOffset = new Date(serverDate).getTime() - Date.now();
+    pubData = (await dbGet('pub')) || {};
+    if (currentCustomer) {
+      const m = await dbGet('members/' + cKey(currentCustomer.code));
+      if (m && m.c) currentMember = m;
     }
-    if (res.ok) {
-      cloudData = await res.json();
-      renderPublicWidgets();
-      if (currentCustomer) {
-        refreshMemberDashboard();
-      }
-    }
+    buildCloudData(currentMember);
+    renderPublicWidgets();
+    if (currentCustomer) refreshMemberDashboard();
   } catch (e) {
     console.warn("Sync retry...", e);
   }
@@ -661,7 +684,7 @@ function renderPublicWidgets() {
   }
 }
 
-// Existing customer login by phone number (if changed device/phone)
+// Existing customer login by phone number or card code
 async function loginExistingCustomerByPhone() {
   const rawPhone = document.getElementById('loginPhoneInput').value.trim();
   if (!rawPhone) return alert('يرجى إدخال رقم الموبايل المسجل لدينا');
@@ -671,26 +694,31 @@ async function loginExistingCustomerByPhone() {
   btn.textContent = 'جاري البحث عن بياناتك...';
 
   try {
-    const res = await fetch(`${FIREBASE_DB_URL}/qc_data.json`);
-    const serverDate = res.headers.get('Date');
-    if (serverDate) serverTimeOffset = new Date(serverDate).getTime() - Date.now();
-    const data = await res.json();
-    cloudData = data;
-
     const cleanInput = rawPhone.replace(/\s+/g, '');
-    const found = (data?.customers || []).find(c =>
-      (c.phone || '').replace(/\s+/g, '') === cleanInput ||
-      (c.code || '').toUpperCase() === cleanInput.toUpperCase()
-    );
+    let member = null;
+    const pk = pKey(cleanInput);
+    if (pk.length >= 5) {
+      const code = await dbGet('phones/' + pk);
+      if (code) member = await dbGet('members/' + cKey(code));
+    }
+    if (!member || !member.c) {
+      const ck = cKey(cleanInput);
+      if (ck) {
+        member = await dbGet('members/' + ck);
+        if ((!member || !member.c) && ck !== ck.toUpperCase()) member = await dbGet('members/' + ck.toUpperCase());
+      }
+    }
 
-    if (!found) {
+    if (!member || !member.c) {
       alert('لم يتم العثور على حساب مسجل بهذا الرقم. يمكنك تسجيل حساب جديد من التبويب المجاور.');
       switchAuthMode('register');
       document.getElementById('regPhone').value = rawPhone;
       return;
     }
 
-    currentCustomer = found;
+    currentMember = member;
+    currentCustomer = member.c;
+    buildCloudData(member);
     localStorage.setItem('qc_saved_customer_code', currentCustomer.code);
     showMemberCard();
   } catch (e) {
@@ -702,12 +730,17 @@ async function loginExistingCustomerByPhone() {
 }
 
 async function submitCustomerRegistration() {
-  const name = document.getElementById('regName').value.trim();
-  const phone = document.getElementById('regPhone').value.trim();
-  const job = document.getElementById('regJob').value.trim();
+  const name = cleanTxt(document.getElementById('regName').value, 60);
+  const phone = cleanTxt(document.getElementById('regPhone').value, 20).replace(/\s+/g, '');
+  const job = cleanTxt(document.getElementById('regJob').value, 80);
 
   if (!name || !phone || !job) {
     alert('يرجى تعبئة الاسم الكامل، رقم الموبايل، والعمل/الدراسة');
+    return;
+  }
+  const pk = pKey(phone);
+  if (pk.length < 5) {
+    alert('يرجى إدخال رقم موبايل صحيح');
     return;
   }
 
@@ -716,46 +749,49 @@ async function submitCustomerRegistration() {
   btn.textContent = 'جاري إصدار البطاقة...';
 
   try {
-    const res = await fetch(`${FIREBASE_DB_URL}/qc_data.json`);
-    const serverDate = res.headers.get('Date');
-    if (serverDate) serverTimeOffset = new Date(serverDate).getTime() - Date.now();
-    let data = (await res.json()) || { customers: [], sessions: [], subscriptions: [], daily: [], settings: { hourlyRate: 5000 } };
-    data.customers = data.customers || [];
-
-    const cleanPhone = phone.replace(/\s+/g, '');
-    let existing = data.customers.find(c => (c.phone || '').replace(/\s+/g, '') === cleanPhone);
-    if (existing) {
-      if (job && !existing.job) existing.job = job;
-      currentCustomer = existing;
-    } else {
-      let maxNum = 1000;
-      data.customers.forEach(c => {
-        const num = parseInt(String(c.code || '').replace(/\D/g, ''), 10);
-        if (!isNaN(num) && num >= maxNum && num < 999999) maxNum = num;
-      });
-      const code = String(maxNum + 1);
-
-      const newCust = {
-        id: Math.floor(getTrueNow()),
-        name,
-        phone: cleanPhone,
-        job,
-        code,
-        accumulatedHours: 0,
-        totalLifetimeHours: 0,
-        freeHours: 0
-      };
-      data.customers.push(newCust);
-      currentCustomer = newCust;
-
-      await fetch(`${FIREBASE_DB_URL}/qc_data/customers.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data.customers)
-      });
+    // 1) already registered with this phone? -> just open the existing card
+    const existingCode = await dbGet('phones/' + pk);
+    if (existingCode) {
+      const m = await dbGet('members/' + cKey(existingCode));
+      if (m && m.c) {
+        currentMember = m;
+        currentCustomer = m.c;
+        buildCloudData(m);
+        localStorage.setItem('qc_saved_customer_code', currentCustomer.code);
+        showMemberCard();
+        return;
+      }
     }
 
-    cloudData = data;
+    // 2) reserve a free card code (the database refuses to overwrite an existing one)
+    const counter = parseInt(await dbGet('counter'), 10);
+    let cand = Math.max(1001, isNaN(counter) ? 1001 : counter);
+    let code = null, rec = null;
+    for (let i = 0; i < 40; i++, cand++) {
+      const body = {
+        c: { id: Math.floor(getTrueNow()), name, phone: maskPhone(phone), job, code: String(cand), accumulatedHours: 0, totalLifetimeHours: 0, freeHours: 0 }
+      };
+      const put = await fetch(`${FIREBASE_DB_URL}/members/${cand}.json`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      });
+      if (put.ok) { code = String(cand); rec = body; break; }
+      if (put.status !== 401 && put.status !== 403) throw new Error('HTTP ' + put.status);
+    }
+    if (!code) throw new Error('no free code');
+
+    // 3) hand the full record (with the real phone) to the admin inbox, then index the phone
+    const inb = await fetch(`${FIREBASE_DB_URL}/inbox/reg.json`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: rec.c.id, name, phone, job, code, ts: Math.floor(getTrueNow()) })
+    });
+    if (!inb.ok) throw new Error('inbox HTTP ' + inb.status);
+    await fetch(`${FIREBASE_DB_URL}/phones/${pk}.json`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(code)
+    });
+
+    currentMember = rec;
+    currentCustomer = rec.c;
+    buildCloudData(rec);
     localStorage.setItem('qc_saved_customer_code', currentCustomer.code);
     showMemberCard();
   } catch (err) {
@@ -787,10 +823,11 @@ function showMemberCard() {
   qrBox.innerHTML = '';
   new QRCode(qrBox, {
     text: cleanCode,
-    width: 84,
-    height: 84,
+    width: 175,
+    height: 175,
     colorDark: "#0f172a",
-    colorLight: "#ffffff"
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.M
   });
 
   refreshMemberDashboard();
@@ -920,22 +957,19 @@ function selectSmiley(score, btn) {
 }
 
 async function submitCustomerFeedback() {
-  const msg = document.getElementById('feedbackMsgInput').value.trim();
+  const msg = cleanTxt(document.getElementById('feedbackMsgInput').value, 500);
   try {
-    const res = await fetch(`${FIREBASE_DB_URL}/qc_data/feedbacks.json`);
-    const list = (await res.json()) || [];
-    list.unshift({
-      id: Math.floor(getTrueNow()),
-      customerName: currentCustomer ? `${currentCustomer.name} (${currentCustomer.code})` : 'زائر',
-      rating: selectedRating,
-      message: msg,
-      date: formatDateTime12(getTrueNow())
+    const res = await fetch(`${FIREBASE_DB_URL}/inbox/fb.json`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: Math.floor(getTrueNow()),
+        customerName: cleanTxt(currentCustomer ? `${currentCustomer.name} (${currentCustomer.code})` : 'زائر', 100),
+        rating: selectedRating,
+        message: msg,
+        date: formatDateTime12(getTrueNow())
+      })
     });
-    await fetch(`${FIREBASE_DB_URL}/qc_data/feedbacks.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(list)
-    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     document.getElementById('feedbackMsgInput').value = '';
     alert('شكراً لك! تم إرسال تقييمك ورسالتك لإدارة مركز الركن الهادئ.');
   } catch (e) {
@@ -959,12 +993,16 @@ setInterval(syncWithCloud, 3000);
 window.addEventListener('DOMContentLoaded', async () => {
   await syncWithCloud();
   const savedCode = localStorage.getItem('qc_saved_customer_code');
-  if (savedCode && cloudData && cloudData.customers) {
-    const found = cloudData.customers.find(c => c.code === savedCode);
-    if (found) {
-      currentCustomer = found;
-      showMemberCard();
-    }
+  if (savedCode) {
+    try {
+      const m = await dbGet('members/' + cKey(savedCode));
+      if (m && m.c) {
+        currentMember = m;
+        currentCustomer = m.c;
+        buildCloudData(m);
+        showMemberCard();
+      }
+    } catch (e) {}
   }
 });
 </script>
