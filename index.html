@@ -296,9 +296,14 @@
               <p id="bannerHallTimer" class="text-2xl font-black font-mono">00:00:00</p>
               <p id="bannerHallCost" class="text-sm font-bold text-amber-100">0 ل.س</p>
             </div>
-            <button onclick="switchTab('hall')" class="bg-white text-amber-700 font-extrabold px-4 py-2 rounded-xl text-sm shadow hover:bg-amber-50 transition">
-              إدارة القاعة
-            </button>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="cancelHallBookingMistake()" class="bg-rose-700/90 hover:bg-rose-800 text-white border border-rose-300/40 font-extrabold px-3.5 py-2 rounded-xl text-xs shadow transition">
+                🗑️ حذف الحجز (بالخطأ)
+              </button>
+              <button onclick="switchTab('hall')" class="bg-white text-amber-700 font-extrabold px-4 py-2 rounded-xl text-sm shadow hover:bg-amber-50 transition">
+                إدارة القاعة
+              </button>
+            </div>
           </div>
         </div>
 
@@ -331,6 +336,9 @@
             <p class="text-sm text-slate-500">يشمل الزبائن المسجلين يدوياً والمسجلين عبر صفحة الـ QR مع إمكانية تصدير جهات الاتصال للموبايل</p>
           </div>
           <div class="flex flex-wrap gap-2">
+            <button onclick="exportCustomersToExcel()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow flex items-center gap-2 transition">
+              <span>📗</span> تصدير إكسل شامل (.xlsx)
+            </button>
             <button onclick="exportCustomersToVcf()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow flex items-center gap-2 transition">
               <span>📇</span> تصدير جهات اتصال للموبايل (.vcf)
             </button>
@@ -853,8 +861,26 @@
           <p id="modalSessionTimeCost" class="text-lg font-black text-sky-600 mt-0.5">0 ل.س</p>
         </div>
         <div class="text-center">
-          <p class="text-xs text-slate-400 font-bold">الإجمالي الكلي</p>
+          <p class="text-xs text-slate-400 font-bold">الإجمالي الصافي</p>
           <p id="modalSessionGrandTotal" class="text-lg font-black text-emerald-600 mt-0.5">0 ل.س</p>
+          <p id="modalDiscountAppliedHint" class="hidden text-[10px] font-extrabold text-rose-600 mt-0.5"></p>
+        </div>
+      </div>
+
+      <!-- Optional Checkout Discount Box -->
+      <div class="bg-rose-50/70 border border-rose-200 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5 text-xs font-black text-rose-900">
+          <span>🏷️</span><span>خصم عند المحاسبة (اختياري):</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5 flex-1 justify-end">
+          <select id="sessionDiscountType" onchange="updateModalSessionLiveNumbers()" class="px-2.5 py-1.5 bg-white border border-rose-200 rounded-xl text-xs font-extrabold text-slate-700">
+            <option value="amount">مبلغ (ل.س)</option>
+            <option value="percent">نسبة (%)</option>
+          </select>
+          <input id="sessionDiscountValue" type="number" min="0" placeholder="0" oninput="updateModalSessionLiveNumbers()" dir="ltr"
+            class="w-24 px-2.5 py-1.5 bg-white border border-rose-200 rounded-xl text-xs font-black text-center">
+          <input id="sessionDiscountNote" type="text" placeholder="سبب الخصم (اختياري)"
+            class="w-36 sm:w-44 px-2.5 py-1.5 bg-white border border-rose-200 rounded-xl text-xs font-bold">
         </div>
       </div>
 
@@ -872,15 +898,20 @@
 
       <!-- Checkout Actions -->
       <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t">
-        <button id="btnUseFreeHour" onclick="checkoutSession('free')" class="hidden bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow">
-          🎁 استخدام ساعة مجانية من رصيده
-        </button>
-        <button id="btnUseSubHour" onclick="checkoutSession('sub')" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow">
-          🎫 خصم من رصيد الباقة
-        </button>
+        <div class="flex flex-wrap gap-1.5">
+          <button onclick="deleteActiveSessionMistake(event, selectedSessionId)" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold px-3.5 py-2.5 rounded-xl text-xs transition">
+            🗑️ حذف الجلسة (دخل بالخطأ)
+          </button>
+          <button id="btnUseFreeHour" onclick="checkoutSession('free')" class="hidden bg-purple-600 hover:bg-purple-700 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs shadow">
+            🎁 ساعة مجانية
+          </button>
+          <button id="btnUseSubHour" onclick="checkoutSession('sub')" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs shadow">
+            🎫 خصم من الباقة
+          </button>
+        </div>
         <div class="flex gap-2 mr-auto">
-          <button onclick="closeModal('sessionDetailModal')" class="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100">إغلاق</button>
-          <button onclick="checkoutSession('cash')" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow">
+          <button onclick="closeModal('sessionDetailModal')" class="px-3.5 py-2.5 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100">إغلاق</button>
+          <button onclick="checkoutSession('cash')" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow">
             🔴 تسجيل خروج وقبض الحساب
           </button>
         </div>
@@ -893,13 +924,106 @@
     <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <h3 class="text-lg font-black text-slate-800 border-b pb-3">➕ تسجيل زبون جديد</h3>
       <div class="space-y-3">
-        <input id="newCustName" type="text" placeholder="الاسم الكامل *" class="w-full px-3.5 py-2.5 border rounded-xl text-sm">
-        <input id="newCustPhone" type="tel" placeholder="رقم الموبايل *" class="w-full px-3.5 py-2.5 border rounded-xl text-sm">
-        <input id="newCustJob" type="text" placeholder="العمل / الدراسة / التخصص" class="w-full px-3.5 py-2.5 border rounded-xl text-sm">
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">الاسم الكامل *</label>
+          <input id="newCustName" type="text" placeholder="الاسم الكامل *" class="w-full px-3.5 py-2.5 border rounded-xl text-sm font-bold">
+        </div>
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">رقم الموبايل (يبدأ بـ 09 ومكون من 10 أرقام) *</label>
+          <input id="newCustPhone" type="tel" inputmode="numeric" maxlength="10" placeholder="09xxxxxxxx" dir="ltr" class="w-full px-3.5 py-2.5 border rounded-xl text-sm font-bold text-right">
+        </div>
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">العمل / الدراسة / التخصص</label>
+          <input id="newCustJob" type="text" placeholder="العمل / الدراسة / التخصص" class="w-full px-3.5 py-2.5 border rounded-xl text-sm font-bold">
+        </div>
       </div>
       <div class="flex justify-end gap-2 pt-2">
         <button onclick="closeModal('addCustomerModal')" class="px-4 py-2 rounded-xl text-sm font-bold text-slate-500">إلغاء</button>
         <button onclick="saveNewCustomer()" class="bg-sky-500 hover:bg-sky-600 text-white font-bold px-5 py-2 rounded-xl text-sm shadow">حفظ وتوليد باركود</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3B. Edit Customer Modal -->
+  <div id="editCustomerModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-black text-slate-800">✏️ تعديل بيانات الزبون</h3>
+        <button onclick="closeModal('editCustomerModal')" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button>
+      </div>
+      <input id="editCustId" type="hidden">
+      <div class="space-y-3 text-right">
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">الاسم الكامل *</label>
+          <input id="editCustName" type="text" class="w-full px-3.5 py-2 border rounded-xl text-sm font-bold">
+        </div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs font-extrabold text-slate-600 mb-1">رقم الموبايل (09 + 10 أرقام) *</label>
+            <input id="editCustPhone" type="tel" inputmode="numeric" maxlength="10" dir="ltr" class="w-full px-3.5 py-2 border rounded-xl text-sm font-bold text-right">
+          </div>
+          <div>
+            <label class="block text-xs font-extrabold text-slate-600 mb-1">كود العضوية / الباركود *</label>
+            <input id="editCustCode" type="text" dir="ltr" class="w-full px-3.5 py-2 border rounded-xl text-sm font-mono font-black text-center">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">العمل / الدراسة / التخصص</label>
+          <input id="editCustJob" type="text" class="w-full px-3.5 py-2 border rounded-xl text-sm font-bold">
+        </div>
+        <div class="grid grid-cols-3 gap-2 pt-1">
+          <div>
+            <label class="block text-[11px] font-extrabold text-slate-600 mb-1">إجمالي الساعات</label>
+            <input id="editCustTotalHours" type="number" step="0.25" min="0" class="w-full px-2.5 py-2 border rounded-xl text-sm font-bold text-center">
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold text-slate-600 mb-1">ساعات العرض</label>
+            <input id="editCustAccHours" type="number" step="0.25" min="0" class="w-full px-2.5 py-2 border rounded-xl text-sm font-bold text-center">
+          </div>
+          <div>
+            <label class="block text-[11px] font-extrabold text-slate-600 mb-1">ساعات مجانية</label>
+            <input id="editCustFreeHours" type="number" step="0.25" min="0" class="w-full px-2.5 py-2 border rounded-xl text-sm font-bold text-center">
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button onclick="closeModal('editCustomerModal')" class="px-4 py-2 rounded-xl text-sm font-bold text-slate-500">إلغاء</button>
+        <button onclick="saveEditedCustomer()" class="bg-sky-500 hover:bg-sky-600 text-white font-bold px-5 py-2 rounded-xl text-sm shadow">💾 حفظ التعديلات</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3C. Edit Product Modal -->
+  <div id="editProductModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-black text-slate-800">✏️ تعديل معلومات المنتج</h3>
+        <button onclick="closeModal('editProductModal')" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button>
+      </div>
+      <input id="editProdId" type="hidden">
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">اسم المنتج *</label>
+          <input id="editProdName" type="text" class="w-full px-3.5 py-2.5 border rounded-xl text-sm font-bold">
+        </div>
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">السعر (ل.س) *</label>
+          <input id="editProdPrice" type="number" min="1" class="w-full px-3.5 py-2.5 border rounded-xl text-sm font-bold">
+        </div>
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">الأيقونة</label>
+          <select id="editProdIcon" class="w-full px-3.5 py-2.5 border rounded-xl text-sm font-bold">
+            <option value="☕">☕ قهوة / مشروب ساخن</option>
+            <option value="🥤">🥤 عصير / مشروب بارد</option>
+            <option value="🖨️">🖨️ طباعة / تصوير</option>
+            <option value="🥐">🥐 سناك / كرواسون</option>
+            <option value="⚡">⚡ خدمة إضافية</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button onclick="closeModal('editProductModal')" class="px-4 py-2 rounded-xl text-sm font-bold text-slate-500">إلغاء</button>
+        <button onclick="saveEditedProduct()" class="bg-sky-500 hover:bg-sky-600 text-white font-bold px-5 py-2 rounded-xl text-sm shadow">💾 حفظ التعديل</button>
       </div>
     </div>
   </div>
@@ -1146,6 +1270,22 @@ let appState = {
     { id: 6, name: "كرواسون", price: 6000, icon: "🥐" }
   ]
 };
+
+function normalizeSyrianPhone(raw) {
+  let s = String(raw || '').trim()
+    .replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)])
+    .replace(/[۰-۹]/g, d => '0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)])
+    .replace(/[^0-9+]/g, '');
+  if (s.startsWith('+9639')) s = '0' + s.slice(4);
+  else if (s.startsWith('009639')) s = '0' + s.slice(5);
+  else if (s.startsWith('9639') && s.length === 12) s = '0' + s.slice(3);
+  return s;
+}
+
+function isValidSyrianPhone(raw) {
+  const norm = normalizeSyrianPhone(raw);
+  return /^09\d{8}$/.test(norm);
+}
 
 function getTrueNow() {
   return Date.now() + serverTimeOffset;
@@ -1558,7 +1698,7 @@ async function submitFbAuth() {
   }
 }
 
-function pubPhoneKey(p) { return String(p || '').replace(/[^0-9+]/g, ''); }
+function pubPhoneKey(p) { return normalizeSyrianPhone(p).replace(/[^0-9]/g, ''); }
 function pubCodeKey(c) { return String(c || '').replace(/[^A-Za-z0-9_-]/g, ''); }
 function pubMaskPhone(p) {
   const s = String(p || '').replace(/\s+/g, '');
@@ -1577,8 +1717,14 @@ async function mirrorPublic(force) {
   try {
     const s = appState, now = Date.now(), upd = {}, newM = {}, newP = {};
     let maxN = 1000;
+    const wifiActive = !!(s.wifi && s.wifi.active !== false && String(s.wifi.ssid || '').trim());
     upd['pub'] = {
-      wifi: s.wifi || {},
+      wifi: wifiActive ? {
+        active: true,
+        ssid: s.wifi.ssid,
+        password: s.wifi.password || '',
+        security: s.wifi.security || 'WPA'
+      } : { active: false },
       announcements: s.announcements || [],
       socialLinks: s.socialLinks || [],
       loyaltyOffers: s.loyaltyOffers || [],
@@ -1655,6 +1801,28 @@ async function importInbox() {
       appState.feedbacks = appState.feedbacks || [];
       appState.feedbacks.unshift({ id: Number(x.id) || Date.now(), customerName: stripTags(x.customerName, 100) || 'زائر', rating: Math.min(5, Math.max(1, Number(x.rating) || 5)), message: stripTags(x.message, 500), date: stripTags(x.date, 40) });
       changed = true;
+    });
+    Object.entries(inbox.checkin || {}).forEach(([id, x]) => {
+      del['inbox/checkin/' + id] = null;
+      if (!x || !x.code) return;
+      const cleanCode = String(x.code).trim().toUpperCase().replace(/^QC-/, '');
+      const cust = (appState.customers || []).find(c => String(c.code || '').trim().toUpperCase().replace(/^QC-/, '') === cleanCode);
+      if (!cust) return;
+      const alreadyActive = (appState.sessions || []).some(s => s.customerId === cust.id && !s.checkedOut);
+      if (!alreadyActive) {
+        appState.sessions.unshift({
+          id: Number(x.ts) || Date.now(),
+          customerId: cust.id,
+          customerName: cust.name,
+          customerCode: cust.code,
+          startTime: getTrueNow(),
+          orders: [],
+          checkedOut: false
+        });
+        changed = true;
+        SoundFX.scanCheckIn();
+        showScanToast(`دخول ذاتي via QR: ${cust.name}`, `كود #${cust.code} • تم تسجيل الدخول من بوستر الباب`, 'checkin');
+      }
     });
     if (!Object.keys(del).length) return;
     let ok = true;
@@ -1947,13 +2115,28 @@ function toggleMinimizeQrDock() {
   const btn = document.getElementById('btnMinimizeQrDock');
   const dock = document.getElementById('webcamScannerDock');
   if (isQrDockMinimized) {
-    body.classList.add('hidden');
-    dock.classList.remove('w-80', 'sm:w-96');
+    // Keep rendered in DOM without display:none so browser & html5-qrcode never throttle/pause video frames!
+    body.style.position = 'fixed';
+    body.style.bottom = '0';
+    body.style.left = '0';
+    body.style.width = '240px';
+    body.style.height = '180px';
+    body.style.opacity = '0.01';
+    body.style.pointerEvents = 'none';
+    body.style.zIndex = '-1';
+    dock.classList.remove('w-auto', 'sm:w-96');
     dock.classList.add('w-64');
     btn.textContent = '🗖 إظهار';
   } else {
-    body.classList.remove('hidden');
-    dock.classList.add('w-80', 'sm:w-96');
+    body.style.position = '';
+    body.style.bottom = '';
+    body.style.left = '';
+    body.style.width = '';
+    body.style.height = '';
+    body.style.opacity = '';
+    body.style.pointerEvents = '';
+    body.style.zIndex = '';
+    dock.classList.add('w-auto', 'sm:w-96');
     dock.classList.remove('w-64');
     btn.textContent = '🗕 خلفية';
   }
@@ -2107,19 +2290,37 @@ function finalizeCustomerSessionCheckout(session, mode = 'cash') {
     }
   }
 
-  const grandTotal = timeCost + ordersTotal;
+  const subtotal = timeCost + ordersTotal;
+  let discountSyp = 0;
+  let discountReason = '';
+  if (selectedSessionId === session.id) {
+    const dType = document.getElementById('sessionDiscountType')?.value || 'amount';
+    const rawDVal = Math.max(0, Number(document.getElementById('sessionDiscountValue')?.value) || 0);
+    discountReason = (document.getElementById('sessionDiscountNote')?.value || '').trim();
+    if (rawDVal > 0) {
+      discountSyp = dType === 'percent'
+        ? Math.round((subtotal * Math.min(100, rawDVal)) / 100)
+        : Math.min(subtotal, Math.round(rawDVal));
+    }
+  }
+  const grandTotal = Math.max(0, subtotal - discountSyp);
+  const discountSuffix = discountSyp > 0
+    ? ` | خصم: ${discountSyp.toLocaleString()} ل.س${discountReason ? ` (${discountReason})` : ''}`
+    : '';
+
   appState.daily.unshift({
     id: Date.now(),
     date: formatDateTime12(now),
     isoDate: new Date(now).toISOString().slice(0, 10),
     type: 'جلسة دراسة',
-    title: `${session.customerName} - ${note}`,
+    title: `${session.customerName} - ${note}${discountSuffix}`,
     amount: grandTotal
   });
 
   session.checkedOut = true;
   session.endTime = now;
   session.finalDuration = formatDuration(elapsed);
+  session.discountAmount = discountSyp;
   session.finalAmount = grandTotal;
   return grandTotal;
 }
@@ -2238,7 +2439,14 @@ function openSessionDetail(sessionId) {
   if (!session) return;
 
   if (session.checkedOut) {
-    if (canWrite(false) && confirm(`تم تسجيل خروج ${session.customerName} مسبقاً (${formatMoney(session.finalAmount)}). هل تريد بدء جلسة جديدة له؟`)) {
+    if (session.isHallDeleted) {
+      selectedSessionId = null;
+      return;
+    }
+    const promptMsg = session.deletedByMistake
+      ? `تم حذف جلسة "${session.customerName}" السابقة كدخول بالخطأ (زبون محذوف). هل تريد بدء جلسة جديدة له الآن؟`
+      : `تم تسجيل خروج ${session.customerName} مسبقاً (${formatMoney(session.finalAmount)}). هل تريد بدء جلسة جديدة له؟`;
+    if (canWrite(false) && confirm(promptMsg)) {
       const cust = appState.customers.find(c => c.id === session.customerId);
       if (cust) startSessionForCustomer(cust);
       else {
@@ -2293,6 +2501,13 @@ function openSessionDetail(sessionId) {
   } else {
     perkBanner.classList.add('hidden');
   }
+
+  const dValEl = document.getElementById('sessionDiscountValue');
+  const dTypeEl = document.getElementById('sessionDiscountType');
+  const dNoteEl = document.getElementById('sessionDiscountNote');
+  if (dValEl) dValEl.value = '';
+  if (dTypeEl) dTypeEl.value = 'amount';
+  if (dNoteEl) dNoteEl.value = '';
 
   updateModalSessionLiveNumbers();
   openModal('sessionDetailModal');
@@ -2392,10 +2607,31 @@ function updateModalSessionLiveNumbers() {
   const elapsed = getTrueNow() - session.startTime;
   const timeCost = calculateTimeCost(elapsed, appState.settings.hourlyRate);
   const ordersTotal = (session.orders || []).reduce((sum, o) => sum + o.price, 0);
+  const subtotal = timeCost + ordersTotal;
+
+  const dType = document.getElementById('sessionDiscountType')?.value || 'amount';
+  const rawDVal = Math.max(0, Number(document.getElementById('sessionDiscountValue')?.value) || 0);
+  let discountSyp = 0;
+  if (rawDVal > 0) {
+    discountSyp = dType === 'percent'
+      ? Math.round((subtotal * Math.min(100, rawDVal)) / 100)
+      : Math.min(subtotal, Math.round(rawDVal));
+  }
+  const netTotal = Math.max(0, subtotal - discountSyp);
 
   document.getElementById('modalSessionDuration').textContent = formatDuration(elapsed);
   document.getElementById('modalSessionTimeCost').textContent = formatMoney(timeCost);
-  document.getElementById('modalSessionGrandTotal').textContent = formatMoney(timeCost + ordersTotal);
+  document.getElementById('modalSessionGrandTotal').textContent = formatMoney(netTotal);
+
+  const hintEl = document.getElementById('modalDiscountAppliedHint');
+  if (hintEl) {
+    if (discountSyp > 0) {
+      hintEl.classList.remove('hidden');
+      hintEl.textContent = `بعد خصم ${discountSyp.toLocaleString()} ل.س (بدل ${subtotal.toLocaleString()})`;
+    } else {
+      hintEl.classList.add('hidden');
+    }
+  }
 
   const listEl = document.getElementById('modalSessionOrdersList');
   if (!session.orders || session.orders.length === 0) {
@@ -2421,6 +2657,29 @@ function checkoutSession(mode) {
   finalizeCustomerSessionCheckout(session, mode);
   SoundFX.scanCheckOut();
   closeModal('sessionDetailModal');
+  pushStateToCloud();
+  renderAll();
+}
+
+function deleteActiveSessionMistake(event, sessionId) {
+  if (event) event.stopPropagation();
+  if (!canWrite(false)) return;
+  const session = appState.sessions.find(s => s.id === sessionId);
+  if (!session || session.checkedOut) return;
+  const elapsed = getTrueNow() - session.startTime;
+  if (!confirm(`هل تريد حذف جلسة "${session.customerName}" كـ (دخول بالخطأ) بدون احتساب أي مبلغ؟\n(المدة المنقضية: ${formatDuration(elapsed)})`)) return;
+
+  session.checkedOut = true;
+  session.deletedByMistake = true;
+  session.endTime = getTrueNow();
+  session.finalDuration = formatDuration(elapsed);
+  session.finalAmount = 0;
+
+  if (selectedSessionId === sessionId) {
+    closeModal('sessionDetailModal');
+    selectedSessionId = null;
+  }
+  SoundFX.remove();
   pushStateToCloud();
   renderAll();
 }
@@ -2545,7 +2804,10 @@ function renderHallTab() {
             </div>
           </div>
 
-          <div class="pt-3 border-t flex justify-end">
+          <div class="pt-3 border-t flex flex-wrap items-center justify-between gap-2">
+            <button onclick="cancelHallBookingMistake()" class="bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 font-extrabold px-4 py-3 rounded-xl text-xs sm:text-sm transition">
+              🗑️ حذف حجز القاعة (دخل بالخطأ)
+            </button>
             <button onclick="checkoutHallBooking()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-6 py-3 rounded-xl shadow-lg transition">
               💰 إنهاء حجز القاعة وقبض الحساب
             </button>
@@ -2613,6 +2875,32 @@ function removeHallOrder(idx) {
   renderHallTab();
 }
 
+function cancelHallBookingMistake() {
+  if (!canWrite(false) || !appState.hallSession) return;
+  const hs = appState.hallSession;
+  const elapsed = getTrueNow() - hs.startTime;
+  if (!confirm(`هل تريد حذف حجز القاعة لـ "${hs.renterName}" كـ (دخول بالخطأ) بدون احتساب أي مبلغ؟\n(المدة المنقضية: ${formatDuration(elapsed)})`)) return;
+
+  appState.sessions.push({
+    id: Date.now(),
+    customerId: null,
+    customerName: `${hs.renterName} (حجز قاعة)`,
+    customerCode: 'قاعة كاملة',
+    startTime: hs.startTime,
+    endTime: getTrueNow(),
+    finalDuration: formatDuration(elapsed),
+    finalAmount: 0,
+    orders: [],
+    checkedOut: true,
+    deletedByMistake: true,
+    isHallDeleted: true
+  });
+  appState.hallSession = null;
+  SoundFX.remove();
+  pushStateToCloud();
+  renderAll();
+}
+
 function checkoutHallBooking() {
   if (!canWrite(false) || !appState.hallSession) return;
   const hs = appState.hallSession;
@@ -2646,9 +2934,17 @@ function openAddCustomerModal() {
 function saveNewCustomer() {
   if (!canWrite(false)) return;
   const name = document.getElementById('newCustName').value.trim();
-  const phone = document.getElementById('newCustPhone').value.trim();
+  const rawPhone = document.getElementById('newCustPhone').value.trim();
   const job = document.getElementById('newCustJob').value.trim();
-  if (!name || !phone) return alert('الاسم ورقم الموبايل مطلوبان');
+  if (!name || !rawPhone) return alert('الاسم ورقم الموبايل مطلوبان');
+
+  const phone = normalizeSyrianPhone(rawPhone);
+  if (!isValidSyrianPhone(phone)) {
+    return alert('رقم الموبايل غلط! يجب أن يبدأ بـ 09 ويتكون من 10 أرقام بالضبط (مثال: 0991134433).');
+  }
+  if (appState.customers.some(c => normalizeSyrianPhone(c.phone) === phone)) {
+    return alert('رقم الموبايل هذا مسجل لزبون آخر بالفعل!');
+  }
 
   const code = generateSimpleNumericCode(appState.customers);
 
@@ -2662,9 +2958,109 @@ function saveNewCustomer() {
     totalLifetimeHours: 0,
     freeHours: 0
   });
+  document.getElementById('newCustName').value = '';
+  document.getElementById('newCustPhone').value = '';
+  document.getElementById('newCustJob').value = '';
   closeModal('addCustomerModal');
   pushStateToCloud();
   renderAll();
+}
+
+function openEditCustomerModal(custId) {
+  if (!canWrite(false)) return;
+  const c = appState.customers.find(x => x.id === custId);
+  if (!c) return;
+  document.getElementById('editCustId').value = c.id;
+  document.getElementById('editCustName').value = c.name || '';
+  document.getElementById('editCustPhone').value = normalizeSyrianPhone(c.phone || '');
+  document.getElementById('editCustCode').value = c.code || '';
+  document.getElementById('editCustJob').value = c.job || '';
+  document.getElementById('editCustTotalHours').value = c.totalLifetimeHours || c.accumulatedHours || 0;
+  document.getElementById('editCustAccHours').value = c.accumulatedHours || 0;
+  document.getElementById('editCustFreeHours').value = c.freeHours || 0;
+  openModal('editCustomerModal');
+}
+
+function saveEditedCustomer() {
+  if (!canWrite(false)) return;
+  const custId = Number(document.getElementById('editCustId').value);
+  const c = appState.customers.find(x => x.id === custId);
+  if (!c) return;
+
+  const name = document.getElementById('editCustName').value.trim();
+  const rawPhone = document.getElementById('editCustPhone').value.trim();
+  const code = document.getElementById('editCustCode').value.trim();
+  const job = document.getElementById('editCustJob').value.trim();
+  const totalH = Math.max(0, Number(document.getElementById('editCustTotalHours').value) || 0);
+  const accH = Math.max(0, Number(document.getElementById('editCustAccHours').value) || 0);
+  const freeH = Math.max(0, Number(document.getElementById('editCustFreeHours').value) || 0);
+
+  if (!name || !rawPhone || !code) return alert('الاسم ورقم الموبايل وكود العضوية حقول مطلوبة');
+  const phone = normalizeSyrianPhone(rawPhone);
+  if (!isValidSyrianPhone(phone)) {
+    return alert('رقم الموبايل غلط! يجب أن يبدأ بـ 09 ويتكون من 10 أرقام بالضبط (مثال: 0991134433).');
+  }
+  if (appState.customers.some(other => other.id !== custId && normalizeSyrianPhone(other.phone) === phone)) {
+    return alert('رقم الموبايل هذا مستخدم لزبون آخر!');
+  }
+  if (appState.customers.some(other => other.id !== custId && String(other.code).trim().toUpperCase() === code.toUpperCase())) {
+    return alert('كود العضوية هذا مستخدم لزبون آخر!');
+  }
+
+  c.name = name;
+  c.phone = phone;
+  c.code = code;
+  c.job = job || 'طالب / عام';
+  c.totalLifetimeHours = totalH;
+  c.accumulatedHours = accH;
+  c.freeHours = freeH;
+
+  // Sync active session if open
+  (appState.sessions || []).forEach(s => {
+    if (s.customerId === custId && !s.checkedOut) {
+      s.customerName = c.name;
+      s.customerCode = c.code;
+    }
+  });
+
+  closeModal('editCustomerModal');
+  SoundFX.success();
+  pushStateToCloud();
+  mirrorPublic(true);
+  renderAll();
+}
+
+function exportCustomersToExcel() {
+  if (!appState.customers || appState.customers.length === 0) {
+    return alert('لا يوجد زبائن مسجلون لتصديرهم!');
+  }
+  const now = getTrueNow();
+  const wb = XLSX.utils.book_new();
+  const rows = appState.customers.map((c, i) => {
+    const activeSub = (appState.subscriptions || []).find(s =>
+      s.customerId === c.id && s.remainingHours > 0 && (!s.expiresAt || s.expiresAt > now)
+    );
+    const activeSess = (appState.sessions || []).find(s => s.customerId === c.id && !s.checkedOut);
+    return {
+      '#': i + 1,
+      'كود العضوية / الباركود': c.code,
+      'الاسم الكامل': c.name,
+      'رقم الموبايل': c.phone,
+      'العمل / الدراسة / التخصص': c.job || '—',
+      'إجمالي الساعات الكلي': c.totalLifetimeHours || c.accumulatedHours || 0,
+      'رصيد ساعات العرض الحالي': c.accumulatedHours || 0,
+      'الساعات المجانية': c.freeHours || 0,
+      'حالة الاشتراك': activeSub ? 'مشترك فعال' : 'غير مشترك',
+      'اسم الباقة': activeSub ? activeSub.packageName : '—',
+      'الساعات المتبقية بالباقة': activeSub ? activeSub.remainingHours : 0,
+      'تاريخ انتهاء الباقة': (activeSub && activeSub.expiresAt) ? new Date(activeSub.expiresAt).toLocaleDateString('ar-SY') : '—',
+      'الحالة الآن': activeSess ? 'متواجد في جلسة حالياً' : 'خارج المركز'
+    };
+  });
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'الزبائن_والباركود');
+  const todayStr = new Date(now).toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `الزبائن_والباركود_${todayStr}.xlsx`);
 }
 
 function exportCustomersToVcf() {
@@ -2717,10 +3113,11 @@ function renderCustomersTable() {
         <td class="p-4 text-slate-600">${c.job || '—'}</td>
         <td class="p-4 font-bold text-amber-600">${totalH} ساعة</td>
         <td class="p-4 font-extrabold text-purple-600">${c.freeHours || 0} ساعة</td>
-        <td class="p-4 flex items-center justify-center gap-2">
-          <button onclick="showBarcodeCard(${c.id})" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs">🪪 باركود</button>
-          <button onclick="startSessionForCustomer(appState.customers.find(x=>x.id===${c.id}))" class="bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold px-3 py-1.5 rounded-lg text-xs">▶️ دخول</button>
-          <button onclick="deleteCustomer(${c.id})" class="text-rose-500 hover:text-rose-700 font-bold px-2 py-1 text-xs">🗑️</button>
+        <td class="p-4 flex items-center justify-center gap-1.5 flex-wrap">
+          <button onclick="showBarcodeCard(${c.id})" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2.5 py-1.5 rounded-lg text-xs">🪪 باركود</button>
+          <button onclick="openEditCustomerModal(${c.id})" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold px-2.5 py-1.5 rounded-lg text-xs">✏️ تعديل</button>
+          <button onclick="startSessionForCustomer(appState.customers.find(x=>x.id===${c.id}))" class="bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold px-2.5 py-1.5 rounded-lg text-xs">▶️ دخول</button>
+          <button onclick="deleteCustomer(${c.id})" title="حذف الزبون نهائياً" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold px-2.5 py-1.5 rounded-lg text-xs">🗑️ حذف</button>
         </td>
       </tr>
     `;
@@ -2742,10 +3139,24 @@ function showBarcodeCard(custId) {
 }
 
 function deleteCustomer(id) {
-  if (!canWrite(true)) return;
-  if (!confirm('حذف هذا الزبون نهائياً؟')) return;
+  if (!canWrite(false)) return;
+  const target = appState.customers.find(c => c.id === id);
+  if (!target) return;
+  if (!confirm(`هل أنت متأكد من حذف الزبون "${target.name}" (${target.code}) نهائياً؟`)) return;
   appState.customers = appState.customers.filter(c => c.id !== id);
+  const now = getTrueNow();
+  (appState.sessions || []).forEach(s => {
+    if (s.customerId === id && !s.checkedOut) {
+      s.checkedOut = true;
+      s.deletedByMistake = true;
+      s.endTime = now;
+      s.finalDuration = formatDuration(now - s.startTime);
+      s.finalAmount = 0;
+    }
+  });
+  SoundFX.remove();
   pushStateToCloud();
+  mirrorPublic(true);
   renderAll();
 }
 
@@ -3161,7 +3572,8 @@ function updatePosterQr() {
   const box = document.getElementById('posterQrBox');
   box.innerHTML = '';
   if (url) {
-    new QRCode(box, { text: url, width: 150, height: 150, colorDark: "#0f172a", colorLight: "#ffffff" });
+    const scanUrl = url.includes('scan=') ? url : `${url}${url.includes('?') ? '&' : '?'}scan=1`;
+    new QRCode(box, { text: scanUrl, width: 150, height: 150, colorDark: "#0f172a", colorLight: "#ffffff" });
   }
 }
 
@@ -3451,13 +3863,25 @@ function renderSettingsTab() {
     </div>
   `).join('');
 
-  document.getElementById('productsAdminList').innerHTML = appState.products.map(p => `
-    <div class="p-3 rounded-2xl border bg-slate-50 flex justify-between items-center">
-      <div>
-        <span class="font-bold text-sm">${p.icon} ${p.name}</span>
-        <p class="text-xs text-emerald-600 font-extrabold">${p.price.toLocaleString()} ل.س</p>
+  document.getElementById('productsAdminList').innerHTML = appState.products.map((p, idx) => `
+    <div class="p-3 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col justify-between gap-2.5">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <span class="inline-block bg-slate-200 text-slate-700 font-mono text-[10px] font-black px-1.5 py-0.5 rounded ml-1">#${idx + 1}</span>
+          <span class="font-bold text-sm text-slate-800">${p.icon} ${p.name}</span>
+          <p class="text-xs text-emerald-600 font-extrabold mt-0.5">${p.price.toLocaleString()} ل.س</p>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button onclick="moveProductItem(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} title="تقديم للأعلى / اليمين"
+            class="px-2 py-1 rounded-lg bg-white border border-slate-300 hover:bg-sky-50 disabled:opacity-30 text-xs font-black">⬆️</button>
+          <button onclick="moveProductItem(${idx}, 1)" ${idx === appState.products.length - 1 ? 'disabled' : ''} title="تأخير للأسفل / اليسار"
+            class="px-2 py-1 rounded-lg bg-white border border-slate-300 hover:bg-sky-50 disabled:opacity-30 text-xs font-black">⬇️</button>
+        </div>
       </div>
-      <button onclick="deleteProductItem(${p.id})" class="text-rose-500 hover:text-rose-700 font-bold text-xs">حذف</button>
+      <div class="flex items-center justify-end gap-1.5 border-t border-slate-200/70 pt-2">
+        <button onclick="openEditProductModal(${p.id})" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold px-2.5 py-1 rounded-lg text-xs">✏️ تعديل</button>
+        <button onclick="deleteProductItem(${p.id})" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold px-2.5 py-1 rounded-lg text-xs">🗑️ حذف</button>
+      </div>
     </div>
   `).join('');
 
@@ -3528,6 +3952,47 @@ function addProductItem() {
   document.getElementById('prodPriceInput').value = '';
   pushStateToCloud();
   renderSettingsTab();
+}
+
+function moveProductItem(index, delta) {
+  if (!canWrite(true)) return;
+  const targetIdx = index + delta;
+  if (targetIdx < 0 || targetIdx >= appState.products.length) return;
+  const [moved] = appState.products.splice(index, 1);
+  appState.products.splice(targetIdx, 0, moved);
+  SoundFX.click();
+  pushStateToCloud();
+  renderSettingsTab();
+  renderQuickPos();
+}
+
+function openEditProductModal(id) {
+  if (!canWrite(true)) return;
+  const p = appState.products.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('editProdId').value = p.id;
+  document.getElementById('editProdName').value = p.name;
+  document.getElementById('editProdPrice').value = p.price;
+  document.getElementById('editProdIcon').value = p.icon || '☕';
+  openModal('editProductModal');
+}
+
+function saveEditedProduct() {
+  if (!canWrite(true)) return;
+  const id = Number(document.getElementById('editProdId').value);
+  const p = appState.products.find(x => x.id === id);
+  if (!p) return;
+  const name = document.getElementById('editProdName').value.trim();
+  const price = Number(document.getElementById('editProdPrice').value);
+  const icon = document.getElementById('editProdIcon').value;
+  if (!name || price <= 0) return alert('يرجى إدخال اسم المنتج وسعر صحيح');
+  p.name = name;
+  p.price = price;
+  p.icon = icon;
+  closeModal('editProductModal');
+  SoundFX.success();
+  pushStateToCloud();
+  renderAll();
 }
 
 function deleteProductItem(id) {
@@ -3631,17 +4096,48 @@ function renderLiveSessions() {
     return;
   }
 
-  grid.innerHTML = appState.sessions.map(s => {
-    // Checked-out customer card stays visible with RED styling
+  const ongoingList = appState.sessions.filter(s => !s.checkedOut);
+  const finishedOrDeletedList = appState.sessions.filter(s => s.checkedOut);
+
+  const renderCardHtml = (s) => {
+    // Deleted / Cancelled by mistake card (stays at bottom with clear "زبون محذوف" label)
+    if (s.checkedOut && s.deletedByMistake) {
+      return `
+        <div onclick="openSessionDetail(${s.id})" class="cursor-pointer bg-slate-100/90 p-5 rounded-3xl border-2 border-dashed border-slate-400 shadow-sm card-hover space-y-3 relative opacity-90">
+          <div class="flex justify-between items-start gap-2">
+            <div>
+              <span class="text-[11px] font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700">${s.customerCode}</span>
+              <h3 class="text-lg font-black text-slate-700 line-through mt-1">${s.customerName}</h3>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="bg-slate-800 text-amber-300 text-xs font-black px-3 py-1 rounded-xl shadow-sm">
+                🚫 زبون محذوف
+              </span>
+              <button onclick="removeCheckedOutCard(event, ${s.id})" title="إزالة البطاقة نهائياً" class="bg-white hover:bg-rose-50 text-rose-600 font-bold w-6 h-6 rounded-lg text-xs border border-slate-300">✕</button>
+            </div>
+          </div>
+          <div class="bg-slate-700 text-white rounded-2xl p-3 flex items-center justify-between text-xs">
+            <span class="text-slate-300 font-bold">المدة الملغاة: <b class="font-mono text-white">${s.finalDuration || '--:--'}</b></span>
+            <span class="font-black text-amber-300">0 ل.س (ملغاة بالخطأ)</span>
+          </div>
+          <div class="flex justify-between items-center text-[11px] text-slate-600 font-bold">
+            <span>حُذف: ${s.endTime ? formatTime12(s.endTime, false) : ''}</span>
+            <span>${s.isHallDeleted ? 'حجز قاعة ملغى' : 'انقر لبدء جلسة جديدة ⬅️'}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // Checked-out customer card stays at bottom with RED styling
     if (s.checkedOut) {
       return `
         <div onclick="openSessionDetail(${s.id})" class="cursor-pointer bg-rose-50/90 p-5 rounded-3xl border-2 border-rose-300 shadow-sm card-hover space-y-3 relative">
-          <div class="flex justify-between items-start">
+          <div class="flex justify-between items-start gap-2">
             <div>
               <span class="text-[11px] font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700">${s.customerCode}</span>
               <h3 class="text-lg font-black text-rose-950 mt-1">${s.customerName}</h3>
             </div>
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1.5 shrink-0">
               <span class="bg-rose-600 text-white text-xs font-extrabold px-3 py-1 rounded-xl shadow-sm">
                 🔴 تم تسجيل الخروج
               </span>
@@ -3653,27 +4149,30 @@ function renderLiveSessions() {
             <span class="font-black text-rose-100">المقبوض: ${formatMoney(s.finalAmount)}</span>
           </div>
           <div class="flex justify-between items-center text-[11px] text-rose-700 font-bold">
-            <span>خروج: ${s.endTime ? new Date(s.endTime).toLocaleTimeString('ar-SY') : ''}</span>
+            <span>خروج: ${s.endTime ? formatTime12(s.endTime, false) : ''}</span>
             <span>انقر لبدء جلسة جديدة ⬅️</span>
           </div>
         </div>
       `;
     }
 
-    // Active ongoing session card
+    // Active ongoing session card (always at TOP)
     const elapsed = now - s.startTime;
     const timeCost = calculateTimeCost(elapsed, appState.settings.hourlyRate);
     const ordersTotal = (s.orders || []).reduce((sum, o) => sum + o.price, 0);
     return `
-      <div onclick="openSessionDetail(${s.id})" class="cursor-pointer bg-white p-5 rounded-3xl border border-slate-200 hover:border-sky-400 shadow-sm card-hover space-y-4">
-        <div class="flex justify-between items-start">
+      <div onclick="openSessionDetail(${s.id})" class="cursor-pointer bg-white p-5 rounded-3xl border-2 border-sky-200 hover:border-sky-400 shadow-sm card-hover space-y-4">
+        <div class="flex justify-between items-start gap-2">
           <div>
             <span class="text-[11px] font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-600">${s.customerCode}</span>
             <h3 class="text-lg font-black text-slate-800 mt-1">${s.customerName}</h3>
           </div>
-          <span id="cost-${s.id}" class="bg-emerald-50 text-emerald-700 text-xs font-extrabold px-3 py-1 rounded-xl border border-emerald-200">
-            ${formatMoney(timeCost + ordersTotal)}
-          </span>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <span id="cost-${s.id}" class="bg-emerald-50 text-emerald-700 text-xs font-extrabold px-3 py-1 rounded-xl border border-emerald-200">
+              ${formatMoney(timeCost + ordersTotal)}
+            </span>
+            <button onclick="deleteActiveSessionMistake(event, ${s.id})" title="حذف الجلسة (دخلت بالخطأ)" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold w-7 h-7 rounded-xl text-xs flex items-center justify-center transition">🗑️</button>
+          </div>
         </div>
         <div class="bg-slate-800 text-white rounded-2xl p-3 flex items-center justify-between">
           <span class="text-xs text-slate-300 font-bold">الوقت المنقضي:</span>
@@ -3685,7 +4184,22 @@ function renderLiveSessions() {
         </div>
       </div>
     `;
-  }).join('');
+  };
+
+  let html = ongoingList.map(renderCardHtml).join('');
+  if (finishedOrDeletedList.length > 0) {
+    if (ongoingList.length > 0) {
+      html += `
+        <div class="col-span-full flex items-center gap-3 pt-3 pb-1">
+          <div class="h-px bg-slate-300 flex-1"></div>
+          <span class="text-xs font-black text-slate-500 bg-slate-200/80 px-3.5 py-1 rounded-full">⬇️ الجلسات المنتهية والمحذوفة (${finishedOrDeletedList.length})</span>
+          <div class="h-px bg-slate-300 flex-1"></div>
+        </div>
+      `;
+    }
+    html += finishedOrDeletedList.map(renderCardHtml).join('');
+  }
+  grid.innerHTML = html;
 }
 
 function renderAll() {
