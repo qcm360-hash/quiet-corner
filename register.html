@@ -98,9 +98,14 @@
         </div>
 
         <div>
-          <label class="block text-xs font-extrabold text-slate-600 mb-1">رقم الموبايل *</label>
-          <input id="regPhone" type="tel" placeholder="09xxxxxxxx" dir="ltr"
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-extrabold text-slate-600">رقم الموبايل * <span class="text-[10px] text-slate-400">(يبدأ بـ 09 ومكون من 10 أرقام)</span></label>
+            <span id="regPhoneCounter" class="text-[11px] font-mono font-black text-slate-400" dir="ltr">0/10</span>
+          </div>
+          <input id="regPhone" type="tel" inputmode="numeric" maxlength="10" placeholder="09xxxxxxxx" dir="ltr"
+            oninput="validatePhoneFieldLive('regPhone', 'regPhoneCounter', 'regPhoneErr')"
             class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition">
+          <p id="regPhoneErr" class="hidden text-[11px] font-extrabold text-rose-600 mt-1">❌ رقم الموبايل غلط! يجب أن يبدأ بـ 09 ويتكون من 10 أرقام</p>
         </div>
 
         <div>
@@ -123,10 +128,12 @@
         </div>
 
         <div>
-          <label class="block text-xs font-extrabold text-slate-600 mb-1">رقم الموبايل المسجل *</label>
-          <input id="loginPhoneInput" type="tel" placeholder="09xxxxxxxx" dir="ltr"
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">رقم الموبايل المسجل (09 + 10 أرقام) أو كود البطاقة *</label>
+          <input id="loginPhoneInput" type="tel" inputmode="numeric" maxlength="10" placeholder="09xxxxxxxx" dir="ltr"
+            oninput="validateLoginPhoneLive()"
             onkeydown="if(event.key==='Enter') loginExistingCustomerByPhone()"
             class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-base font-black text-center tracking-wider focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition">
+          <p id="loginPhoneErr" class="hidden text-[11px] font-extrabold text-rose-600 mt-1 text-center">❌ رقم الموبايل غلط! يجب أن يبدأ بـ 09 ويتكون من 10 أرقام</p>
         </div>
 
         <button id="btnPhoneLoginSubmit" onclick="loginExistingCustomerByPhone()"
@@ -138,6 +145,16 @@
 
     <!-- ==================== VIEW 2: MEMBER CARD & LIVE SESSION ==================== -->
     <section id="memberView" class="hidden space-y-5">
+
+      <!-- QR Auto Check-In Confirmation Banner (Shown when member scans center QR poster) -->
+      <div id="qrCheckInBanner" class="hidden bg-gradient-to-l from-emerald-600 to-teal-600 text-white rounded-3xl p-4 shadow-lg border border-emerald-300 flex items-center gap-3">
+        <div class="text-3xl bg-white/20 w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">✅</div>
+        <div>
+          <span class="text-[10px] font-black bg-white/25 px-2.5 py-0.5 rounded-full">مسح باركود الدخول السريع</span>
+          <h3 id="qrCheckInBannerTitle" class="text-sm font-black mt-1">تم تسجيل دخولك بنجاح!</h3>
+          <p id="qrCheckInBannerSub" class="text-xs text-emerald-50 font-bold mt-0.5">أهلاً بك في مركز الركن الهادئ</p>
+        </div>
+      </div>
 
       <!-- VIP Milestone Achievement Banner (Shown if customer exceeded total hours threshold) -->
       <div id="vipMilestoneBanner" class="hidden bg-gradient-to-l from-amber-500 to-yellow-500 text-white rounded-3xl p-4 shadow-lg border border-amber-300 flex items-center gap-3">
@@ -411,7 +428,48 @@ function switchAuthMode(mode) {
 
 let pubData = null;
 let currentMember = null;
-const pKey = p => String(p || '').replace(/[^0-9+]/g, '');
+function normalizeSyrianPhone(raw) {
+  let s = String(raw || '').trim()
+    .replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)])
+    .replace(/[۰-۹]/g, d => '0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)])
+    .replace(/[^0-9+]/g, '');
+  if (s.startsWith('+9639')) s = '0' + s.slice(4);
+  else if (s.startsWith('009639')) s = '0' + s.slice(5);
+  else if (s.startsWith('9639') && s.length === 12) s = '0' + s.slice(3);
+  return s;
+}
+function isValidSyrianPhone(raw) {
+  return /^09\d{8}$/.test(normalizeSyrianPhone(raw));
+}
+function validatePhoneFieldLive(inputId, counterId, errId) {
+  const inp = document.getElementById(inputId);
+  const cnt = document.getElementById(counterId);
+  const err = document.getElementById(errId);
+  if (!inp) return;
+  const digits = normalizeSyrianPhone(inp.value).replace(/[^0-9]/g, '').slice(0, 10);
+  inp.value = digits;
+  if (cnt) {
+    cnt.textContent = `${digits.length}/10`;
+    cnt.className = `text-[11px] font-mono font-black ${isValidSyrianPhone(digits) ? 'text-emerald-600' : 'text-slate-400'}`;
+  }
+  if (err) {
+    const showErr = digits.length > 0 && !isValidSyrianPhone(digits);
+    err.classList.toggle('hidden', !showErr);
+  }
+}
+function validateLoginPhoneLive() {
+  const inp = document.getElementById('loginPhoneInput');
+  const err = document.getElementById('loginPhoneErr');
+  if (!inp || !err) return;
+  const digits = normalizeSyrianPhone(inp.value).replace(/[^0-9]/g, '').slice(0, 10);
+  inp.value = digits;
+  // If user is typing a phone (starts with 0 or length > 4), validate 09 + 10 digits
+  const looksLikePhone = digits.startsWith('0') || digits.length > 4;
+  const showErr = digits.length > 0 && looksLikePhone && !isValidSyrianPhone(digits);
+  err.classList.toggle('hidden', !showErr);
+}
+const pKey = p => normalizeSyrianPhone(p).replace(/[^0-9]/g, '');
+let pendingQrAutoCheckIn = false;
 const cKey = c => String(c || '').replace(/[^A-Za-z0-9_-]/g, '');
 const cleanTxt = (s, max) => String(s == null ? '' : s).replace(/[<>]/g, ' ').trim().slice(0, max);
 function maskPhone(p) {
@@ -635,10 +693,10 @@ function installAppleWifiProfile() {
 function renderPublicWidgets() {
   if (!cloudData) return;
 
-  // 0. Wi-Fi Quick Connect Bar
+  // 0. Wi-Fi Quick Connect Bar (ONLY visible after customer logs in / registers)
   const wf = cloudData.wifi;
   const wifiBar = document.getElementById('wifiQuickBar');
-  if (wf && wf.active !== false && wf.ssid) {
+  if (currentCustomer && wf && wf.active !== false && wf.ssid) {
     wifiBar.classList.remove('hidden');
     document.getElementById('wifiBarSsidLabel').textContent = wf.ssid;
   } else {
@@ -684,25 +742,32 @@ function renderPublicWidgets() {
   }
 }
 
-// Existing customer login by phone number or card code
+// Existing customer login by phone number (09 + 10 digits) or card code
 async function loginExistingCustomerByPhone() {
-  const rawPhone = document.getElementById('loginPhoneInput').value.trim();
-  if (!rawPhone) return alert('يرجى إدخال رقم الموبايل المسجل لدينا');
+  const rawInput = document.getElementById('loginPhoneInput').value.trim();
+  if (!rawInput) return alert('يرجى إدخال رقم الموبايل المسجل لدينا');
+
+  const normPhone = normalizeSyrianPhone(rawInput);
+  const isCardCode = /^[1-9]\d{3,5}$/.test(normPhone);
+  if (!isCardCode && !isValidSyrianPhone(normPhone)) {
+    const err = document.getElementById('loginPhoneErr');
+    if (err) err.classList.remove('hidden');
+    return alert('رقم الموبايل غلط! يجب أن يبدأ بـ 09 ويتكون من 10 أرقام (مثال: 0991134433)');
+  }
 
   const btn = document.getElementById('btnPhoneLoginSubmit');
   btn.disabled = true;
   btn.textContent = 'جاري البحث عن بياناتك...';
 
   try {
-    const cleanInput = rawPhone.replace(/\s+/g, '');
     let member = null;
-    const pk = pKey(cleanInput);
-    if (pk.length >= 5) {
+    if (isValidSyrianPhone(normPhone)) {
+      const pk = pKey(normPhone);
       const code = await dbGet('phones/' + pk);
       if (code) member = await dbGet('members/' + cKey(code));
     }
     if (!member || !member.c) {
-      const ck = cKey(cleanInput);
+      const ck = cKey(normPhone);
       if (ck) {
         member = await dbGet('members/' + ck);
         if ((!member || !member.c) && ck !== ck.toUpperCase()) member = await dbGet('members/' + ck.toUpperCase());
@@ -712,7 +777,10 @@ async function loginExistingCustomerByPhone() {
     if (!member || !member.c) {
       alert('لم يتم العثور على حساب مسجل بهذا الرقم. يمكنك تسجيل حساب جديد من التبويب المجاور.');
       switchAuthMode('register');
-      document.getElementById('regPhone').value = rawPhone;
+      if (isValidSyrianPhone(normPhone)) {
+        document.getElementById('regPhone').value = normPhone;
+        validatePhoneFieldLive('regPhone', 'regPhoneCounter', 'regPhoneErr');
+      }
       return;
     }
 
@@ -721,6 +789,10 @@ async function loginExistingCustomerByPhone() {
     buildCloudData(member);
     localStorage.setItem('qc_saved_customer_code', currentCustomer.code);
     showMemberCard();
+    if (pendingQrAutoCheckIn) {
+      pendingQrAutoCheckIn = false;
+      await triggerAutoSelfCheckIn(currentCustomer, currentMember);
+    }
   } catch (e) {
     alert('تعذر الاتصال بالسحابة. تأكد من اتصالك بالإنترنت.');
   } finally {
@@ -731,18 +803,20 @@ async function loginExistingCustomerByPhone() {
 
 async function submitCustomerRegistration() {
   const name = cleanTxt(document.getElementById('regName').value, 60);
-  const phone = cleanTxt(document.getElementById('regPhone').value, 20).replace(/\s+/g, '');
+  const phone = normalizeSyrianPhone(cleanTxt(document.getElementById('regPhone').value, 20));
   const job = cleanTxt(document.getElementById('regJob').value, 80);
 
   if (!name || !phone || !job) {
     alert('يرجى تعبئة الاسم الكامل، رقم الموبايل، والعمل/الدراسة');
     return;
   }
-  const pk = pKey(phone);
-  if (pk.length < 5) {
-    alert('يرجى إدخال رقم موبايل صحيح');
+  if (!isValidSyrianPhone(phone)) {
+    const err = document.getElementById('regPhoneErr');
+    if (err) err.classList.remove('hidden');
+    alert('رقم الموبايل غلط! يجب أن يبدأ بـ 09 ويتكون من 10 أرقام بالضبط (مثال: 0991134433)');
     return;
   }
+  const pk = pKey(phone);
 
   const btn = document.getElementById('btnRegisterSubmit');
   btn.disabled = true;
@@ -794,6 +868,10 @@ async function submitCustomerRegistration() {
     buildCloudData(rec);
     localStorage.setItem('qc_saved_customer_code', currentCustomer.code);
     showMemberCard();
+    if (pendingQrAutoCheckIn) {
+      pendingQrAutoCheckIn = false;
+      await triggerAutoSelfCheckIn(currentCustomer, currentMember);
+    }
   } catch (err) {
     alert('تعذر الاتصال بالسحابة. تأكد من اتصالك بالإنترنت.');
   } finally {
@@ -830,7 +908,51 @@ function showMemberCard() {
     correctLevel: QRCode.CorrectLevel.M
   });
 
+  renderPublicWidgets();
   refreshMemberDashboard();
+}
+
+async function triggerAutoSelfCheckIn(cust, memberObj) {
+  if (!cust || !cust.code) return;
+  const banner = document.getElementById('qrCheckInBanner');
+  const bTitle = document.getElementById('qrCheckInBannerTitle');
+  const bSub = document.getElementById('qrCheckInBannerSub');
+
+  const alreadyActive = memberObj && memberObj.session && !memberObj.session.checkedOut;
+  if (alreadyActive) {
+    if (banner) {
+      banner.classList.remove('hidden');
+      bTitle.textContent = `أهلاً بعودتك يا ${cust.name}! جلستك نشطة بالفعل`;
+      bSub.textContent = 'يمكنك متابعة العداد وطلباتك مباشرة من البطاقة أدناه';
+    }
+    return;
+  }
+
+  const guardKey = 'qc_last_qr_checkin_' + cust.code;
+  const lastTs = Number(sessionStorage.getItem(guardKey) || 0);
+  if (Date.now() - lastTs < 45000) return;
+
+  try {
+    const res = await fetch(`${FIREBASE_DB_URL}/inbox/checkin.json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: String(cust.code),
+        name: cust.name || '',
+        ts: Math.floor(getTrueNow())
+      })
+    });
+    if (res.ok) {
+      sessionStorage.setItem(guardKey, String(Date.now()));
+      if (banner) {
+        banner.classList.remove('hidden');
+        bTitle.textContent = `✅ تم مسح الكود وتسجيل دخولك بنجاح!`;
+        bSub.textContent = `أهلاً بك يا ${cust.name} — بدأ احتساب جلستك الآن`;
+      }
+    }
+  } catch (e) {
+    console.warn('Auto check-in retry needed', e);
+  }
 }
 
 function refreshMemberDashboard() {
@@ -931,6 +1053,10 @@ function updateCustomerLiveClock(session) {
 function logoutCustomerCard() {
   localStorage.removeItem('qc_saved_customer_code');
   currentCustomer = null;
+  currentMember = null;
+  const banner = document.getElementById('qrCheckInBanner');
+  if (banner) banner.classList.add('hidden');
+  renderPublicWidgets();
   document.getElementById('memberView').classList.add('hidden');
   document.getElementById('registerView').classList.remove('hidden');
 }
@@ -991,6 +1117,13 @@ setInterval(() => {
 setInterval(syncWithCloud, 3000);
 
 window.addEventListener('DOMContentLoaded', async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const isQrScan = urlParams.get('scan') === '1' || urlParams.get('checkin') === '1';
+  if (isQrScan) {
+    // Clean URL immediately so normal browser reloads/opens never trigger another check-in
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
   await syncWithCloud();
   const savedCode = localStorage.getItem('qc_saved_customer_code');
   if (savedCode) {
@@ -1001,8 +1134,17 @@ window.addEventListener('DOMContentLoaded', async () => {
         currentCustomer = m.c;
         buildCloudData(m);
         showMemberCard();
+        if (isQrScan) {
+          await triggerAutoSelfCheckIn(currentCustomer, currentMember);
+        }
+        return;
       }
     } catch (e) {}
+  }
+
+  // Not registered yet: opens registration form cleanly; if came from QR poster, auto check-in upon registration
+  if (isQrScan) {
+    pendingQrAutoCheckIn = true;
   }
 });
 </script>
