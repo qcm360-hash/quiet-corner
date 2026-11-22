@@ -617,6 +617,15 @@
                 🖨️ طباعة البوستر
               </button>
             </div>
+            <div class="bg-sky-50 border border-sky-200 rounded-2xl p-3.5 space-y-1.5">
+              <label class="block text-xs font-black text-sky-900">⚡ عند مسح الزبون المسجل لبوستر الـ QR مرة ثانية:</label>
+              <select id="qrDoorScanModeSelect" onchange="saveQrDoorScanMode(this.value)" class="w-full px-3 py-2 bg-white border border-sky-300 rounded-xl text-xs font-extrabold text-slate-800">
+                <option value="auto">✅ تسجيل دخول تلقائي + إشعار فوري عند الكاشير</option>
+                <option value="notify">🔔 إشعار فقط عند الكاشير (لتسجيل الدخول يدوياً)</option>
+                <option value="off">⛔ إيقاف (عرض بطاقة الزبون فقط بدون إشعار)</option>
+              </select>
+              <p class="text-[11px] text-sky-700 font-bold">ملاحظة: لا يتكرر الإشعار أو الدخول عند تحديث الصفحة (Refresh) نهائياً — يعمل فقط عند مسح الكود بالكاميرا من جديد.</p>
+            </div>
           </div>
 
           <div id="printableQrPoster" class="bg-slate-50 border-2 border-dashed border-sky-300 rounded-3xl p-6 text-center w-72 shrink-0">
@@ -885,8 +894,12 @@
       </div>
 
       <!-- Quick Add Products -->
-      <div>
-        <p class="text-xs font-extrabold text-slate-600 mb-2">➕ إضافة مشروب أو خدمة لحساب الزبون:</p>
+      <div class="space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="text-xs font-extrabold text-slate-600">➕ إضافة مشروب أو خدمة لحساب الزبون:</p>
+          <input id="modalProductsSearchInput" type="text" oninput="renderModalProductsButtons()" placeholder="🔍 ابحث عن مشروب أو خدمة..."
+            class="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold w-48 sm:w-56 focus:outline-none focus:ring-2 focus:ring-sky-500">
+        </div>
         <div id="modalProductsButtons" class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto"></div>
       </div>
 
@@ -919,7 +932,42 @@
     </div>
   </div>
 
-  <!-- 3. Add Customer Modal -->
+    <!-- 2B. Admin-Only Edit Checked-Out Session Modal -->
+  <div id="editCheckedOutSessionModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-amber-200">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div>
+          <h3 class="text-lg font-black text-slate-800">✏️ تعديل جلسة مسجّل خروجها</h3>
+          <p class="text-[11px] text-amber-700 font-bold">صلاحية المدير الكامل فقط — يتم تحديث الصندوق تلقائياً</p>
+        </div>
+        <button onclick="closeModal('editCheckedOutSessionModal')" class="text-slate-400 hover:text-slate-700 font-bold text-2xl">&times;</button>
+      </div>
+      <input id="editCoSessionId" type="hidden">
+      <div class="space-y-3 text-right">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-extrabold text-slate-700">
+          الزبون: <span id="editCoSessionCustName" class="text-sky-700">---</span>
+        </div>
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">المبلغ المقبوض الجديد (ل.س) *</label>
+          <input id="editCoSessionAmount" type="number" min="0" dir="ltr" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm font-black text-center">
+        </div>
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">المدة النهائية (اختياري)</label>
+          <input id="editCoSessionDuration" type="text" dir="ltr" placeholder="01:30:00" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm font-mono font-bold text-center">
+        </div>
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">ملاحظة / سبب التعديل (اختياري)</label>
+          <input id="editCoSessionNote" type="text" placeholder="مثلاً: تعديل خطأ بالحساب" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm font-bold">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button onclick="closeModal('editCheckedOutSessionModal')" class="px-4 py-2 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100">إلغاء</button>
+        <button onclick="saveEditedCheckedOutSession()" class="bg-amber-600 hover:bg-amber-700 text-white font-black px-5 py-2 rounded-xl text-sm shadow transition">💾 حفظ التعديل</button>
+      </div>
+    </div>
+  </div>
+
+<!-- 3. Add Customer Modal -->
   <div id="addCustomerModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <h3 class="text-lg font-black text-slate-800 border-b pb-3">➕ تسجيل زبون جديد</h3>
@@ -1148,7 +1196,29 @@
   </div>
 
   <!-- Live Floating Scan Notification Toast -->
-  <div id="scanToastBanner" class="fixed top-20 left-1/2 -translate-x-1/2 z-[90] hidden max-w-md w-[92%] pointer-events-none transition-all duration-300">
+    <!-- Interactive Check-In Prompt Banner (For New QR Registrations & Returning QR Scans) -->
+  <div id="checkInPromptBanner" class="no-print fixed top-20 left-1/2 -translate-x-1/2 z-[95] hidden max-w-md w-[94vw]">
+    <div class="bg-slate-900 text-white border-2 border-sky-400 rounded-2xl shadow-2xl p-4 space-y-3">
+      <div class="flex items-start gap-3">
+        <span id="checkInPromptIcon" class="text-2xl shrink-0">🔔</span>
+        <div class="flex-1 min-w-0">
+          <p id="checkInPromptTitle" class="text-sm font-black text-white leading-snug">---</p>
+          <p id="checkInPromptSub" class="text-xs text-sky-200 font-bold mt-0.5">---</p>
+        </div>
+        <button onclick="dismissCheckInPrompt()" class="text-slate-400 hover:text-white font-bold text-lg leading-none">&times;</button>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-1 border-t border-slate-700/80">
+        <button onclick="dismissCheckInPrompt()" class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition">
+          تجاهل / لاحقاً
+        </button>
+        <button id="btnConfirmPromptCheckIn" onclick="confirmPromptCheckIn()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-black px-4 py-1.5 rounded-xl text-xs shadow transition">
+          ✅ نعم، تسجيل دخول الآن
+        </button>
+      </div>
+    </div>
+  </div>
+
+<div id="scanToastBanner" class="fixed top-20 left-1/2 -translate-x-1/2 z-[90] hidden max-w-md w-[92%] pointer-events-none transition-all duration-300">
     <div id="scanToastInner" class="bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border-2 border-sky-400 flex items-center gap-3">
       <span id="scanToastIcon" class="text-2xl">✅</span>
       <div class="text-right flex-1">
@@ -1255,7 +1325,8 @@ let appState = {
     hourlyRate: 5000,
     hallHourlyRate: 25000,
     roundUpAfter5Min: false,
-    qrUrl: ""
+    qrUrl: "",
+    qrDoorScanMode: "notify"
   },
   packages: [
     { id: 1, name: "باقة 10 ساعات", hours: 10, durationDays: 15, price: 45000, freePerk: "" },
@@ -1792,8 +1863,10 @@ async function importInbox() {
         del['members/' + pubCodeKey(code)] = null;
         code = generateSimpleNumericCode(appState.customers);
       }
-      appState.customers.push({ id: Number(x.id) || Date.now(), name: stripTags(x.name, 60), phone, job: stripTags(x.job, 80), code, accumulatedHours: 0, totalLifetimeHours: 0, freeHours: 0 });
+      const newCustObj = { id: Number(x.id) || Date.now(), name: stripTags(x.name, 60), phone, job: stripTags(x.job, 80), code, accumulatedHours: 0, totalLifetimeHours: 0, freeHours: 0 };
+      appState.customers.push(newCustObj);
       changed = true;
+      showCheckInPrompt(newCustObj, 'reg');
     });
     Object.entries(inbox.fb || {}).forEach(([id, x]) => {
       del['inbox/fb/' + id] = null;
@@ -1802,14 +1875,18 @@ async function importInbox() {
       appState.feedbacks.unshift({ id: Number(x.id) || Date.now(), customerName: stripTags(x.customerName, 100) || 'زائر', rating: Math.min(5, Math.max(1, Number(x.rating) || 5)), message: stripTags(x.message, 500), date: stripTags(x.date, 40) });
       changed = true;
     });
+    const qrMode = (appState.settings && appState.settings.qrDoorScanMode) || 'notify';
     Object.entries(inbox.checkin || {}).forEach(([id, x]) => {
       del['inbox/checkin/' + id] = null;
-      if (!x || !x.code) return;
+      if (qrMode === 'off' || !x || !x.code) return;
       const cleanCode = String(x.code).trim().toUpperCase().replace(/^QC-/, '');
       const cust = (appState.customers || []).find(c => String(c.code || '').trim().toUpperCase().replace(/^QC-/, '') === cleanCode);
       if (!cust) return;
       const alreadyActive = (appState.sessions || []).some(s => s.customerId === cust.id && !s.checkedOut);
-      if (!alreadyActive) {
+      if (alreadyActive) return;
+      if (qrMode === 'notify') {
+        showCheckInPrompt(cust, 'qr');
+      } else {
         appState.sessions.unshift({
           id: Number(x.ts) || Date.now(),
           customerId: cust.id,
@@ -1880,7 +1957,8 @@ async function pullStateFromCloud(initial = false) {
             ...appState,
             ...cloudData,
             customers: cloudData.customers || [],
-            sessions: cloudData.sessions || [],
+            sessions: (cloudData.sessions || []).map(s => ({ ...s, orders: Array.isArray(s.orders) ? s.orders : (s.orders ? Object.values(s.orders) : []) })),
+            hallSession: cloudData.hallSession ? { ...cloudData.hallSession, orders: Array.isArray(cloudData.hallSession.orders) ? cloudData.hallSession.orders : (cloudData.hallSession.orders ? Object.values(cloudData.hallSession.orders) : []) } : null,
             subscriptions: cloudData.subscriptions || [],
             daily: cloudData.daily || [],
             closedDays: cloudData.closedDays || [],
@@ -2077,6 +2155,95 @@ document.addEventListener('click', (e) => {
 
 // ==================== TOAST NOTIFICATION HELPER ====================
 let scanToastTimer = null;
+
+// ==================== ACTIVE SUBSCRIPTION HELPER ====================
+function getActiveCustomerSub(customerId, nowTs = getTrueNow()) {
+  if (!customerId) return null;
+  return (appState.subscriptions || []).find(s =>
+    s.customerId === customerId && Number(s.remainingHours) > 0 && (!s.expiresAt || s.expiresAt > nowTs)
+  ) || null;
+}
+
+function getSessionBillingInfo(session, nowTs = getTrueNow()) {
+  const elapsed = Math.max(0, nowTs - session.startTime);
+  const hoursSpent = +(elapsed / 3600000).toFixed(2);
+  const ordersTotal = (session.orders || []).reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+  const sub = getActiveCustomerSub(session.customerId, nowTs);
+  if (sub) {
+    const deductHours = Math.min(Number(sub.remainingHours) || 0, Math.max(0.01, hoursSpent));
+    const afterHours = Math.max(0, +((Number(sub.remainingHours) || 0) - hoursSpent).toFixed(2));
+    return {
+      elapsed,
+      hoursSpent,
+      ordersTotal,
+      sub,
+      isSub: true,
+      timeCost: 0,
+      total: ordersTotal,
+      deductHours: +deductHours.toFixed(2),
+      afterHours
+    };
+  }
+  const timeCost = calculateTimeCost(elapsed, appState.settings.hourlyRate);
+  return {
+    elapsed,
+    hoursSpent,
+    ordersTotal,
+    sub: null,
+    isSub: false,
+    timeCost,
+    total: timeCost + ordersTotal,
+    deductHours: 0,
+    afterHours: 0
+  };
+}
+
+// ==================== INTERACTIVE CHECK-IN PROMPT ====================
+let pendingCheckInCustomerId = null;
+
+function showCheckInPrompt(cust, reason = 'reg') {
+  if (!cust) return;
+  const alreadyActive = (appState.sessions || []).some(s => s.customerId === cust.id && !s.checkedOut);
+  if (alreadyActive) return;
+  pendingCheckInCustomerId = cust.id;
+  const iconEl = document.getElementById('checkInPromptIcon');
+  const titleEl = document.getElementById('checkInPromptTitle');
+  const subEl = document.getElementById('checkInPromptSub');
+  if (reason === 'reg') {
+    if (iconEl) iconEl.textContent = '🆕';
+    if (titleEl) titleEl.textContent = `زبون جديد سجل بياناته الآن: ${cust.name}`;
+    if (subEl) subEl.textContent = `كود #${cust.code} • هل تريد تسجيل دخوله وبدء جلسته الآن؟`;
+  } else {
+    if (iconEl) iconEl.textContent = '📲';
+    if (titleEl) titleEl.textContent = `زبون مسجل مسح بوستر الـ QR: ${cust.name}`;
+    if (subEl) subEl.textContent = `كود #${cust.code} • هل تريد تسجيل دخوله وبدء جلسته الآن؟`;
+  }
+  const banner = document.getElementById('checkInPromptBanner');
+  if (banner) banner.classList.remove('hidden');
+  SoundFX.scanCheckIn();
+}
+
+function dismissCheckInPrompt() {
+  pendingCheckInCustomerId = null;
+  const banner = document.getElementById('checkInPromptBanner');
+  if (banner) banner.classList.add('hidden');
+}
+
+function confirmPromptCheckIn() {
+  if (!pendingCheckInCustomerId) return;
+  const cust = (appState.customers || []).find(c => c.id === pendingCheckInCustomerId);
+  dismissCheckInPrompt();
+  if (!cust) return;
+  const alreadyActive = (appState.sessions || []).some(s => s.customerId === cust.id && !s.checkedOut);
+  if (alreadyActive) {
+    showScanToast(`الزبون داخل الجلسة مسبقاً: ${cust.name}`, `كود #${cust.code}`, 'info');
+    return;
+  }
+  startSessionForCustomer(cust);
+  SoundFX.success();
+  showScanToast(`✅ تم تسجيل دخول: ${cust.name}`, `كود #${cust.code} • بدأ احتساب الجلسة`, 'checkin');
+}
+
 function showScanToast(title, sub, variant = 'info') {
   const banner = document.getElementById('scanToastBanner');
   const inner = document.getElementById('scanToastInner');
@@ -2112,32 +2279,37 @@ function saveAutoScanPref(enabled) {
 function toggleMinimizeQrDock() {
   isQrDockMinimized = !isQrDockMinimized;
   const body = document.getElementById('webcamDockBody');
+  const reader = document.getElementById('webcamReaderContainer');
   const btn = document.getElementById('btnMinimizeQrDock');
   const dock = document.getElementById('webcamScannerDock');
   if (isQrDockMinimized) {
-    // Keep rendered in DOM without display:none so browser & html5-qrcode never throttle/pause video frames!
-    body.style.position = 'fixed';
-    body.style.bottom = '0';
-    body.style.left = '0';
-    body.style.width = '240px';
-    body.style.height = '180px';
-    body.style.opacity = '0.01';
-    body.style.pointerEvents = 'none';
-    body.style.zIndex = '-1';
-    dock.classList.remove('w-auto', 'sm:w-96');
-    dock.classList.add('w-64');
-    btn.textContent = '🗖 إظهار';
+    // Hide only the extra controls, keep the live <video> visible as a tiny compact PIP so Chrome/Edge NEVER pauses/occludes it!
+    Array.from(body.children).forEach(ch => {
+      if (ch.id !== 'webcamReaderContainer') ch.classList.add('hidden');
+    });
+    body.style.padding = '6px';
+    if (reader) {
+      reader.style.minHeight = '0';
+      reader.style.height = '64px';
+      reader.style.width = '96px';
+      reader.style.margin = '0 auto';
+    }
+    dock.classList.remove('w-auto', 'sm:w-96', 'right-3');
+    dock.classList.add('w-60');
+    btn.textContent = '🗖 تكبير';
   } else {
-    body.style.position = '';
-    body.style.bottom = '';
-    body.style.left = '';
-    body.style.width = '';
-    body.style.height = '';
-    body.style.opacity = '';
-    body.style.pointerEvents = '';
-    body.style.zIndex = '';
-    dock.classList.add('w-auto', 'sm:w-96');
-    dock.classList.remove('w-64');
+    Array.from(body.children).forEach(ch => {
+      ch.classList.remove('hidden');
+    });
+    body.style.padding = '';
+    if (reader) {
+      reader.style.minHeight = '';
+      reader.style.height = '';
+      reader.style.width = '';
+      reader.style.margin = '';
+    }
+    dock.classList.add('w-auto', 'sm:w-96', 'right-3');
+    dock.classList.remove('w-60');
     btn.textContent = '🗕 خلفية';
   }
 }
@@ -2308,8 +2480,10 @@ function finalizeCustomerSessionCheckout(session, mode = 'cash') {
     ? ` | خصم: ${discountSyp.toLocaleString()} ل.س${discountReason ? ` (${discountReason})` : ''}`
     : '';
 
+  const dailyTxId = Date.now() + Math.floor(Math.random() * 1000);
   appState.daily.unshift({
-    id: Date.now(),
+    id: dailyTxId,
+    sessionId: session.id,
     date: formatDateTime12(now),
     isoDate: new Date(now).toISOString().slice(0, 10),
     type: 'جلسة دراسة',
@@ -2317,6 +2491,7 @@ function finalizeCustomerSessionCheckout(session, mode = 'cash') {
     amount: grandTotal
   });
 
+  session.dailyTxId = dailyTxId;
   session.checkedOut = true;
   session.endTime = now;
   session.finalDuration = formatDuration(elapsed);
@@ -2471,14 +2646,9 @@ function openSessionDetail(sessionId) {
   document.getElementById('modalSessionName').textContent = session.customerName;
   document.getElementById('modalSessionMeta').textContent = `الكود: ${session.customerCode} | وقت الدخول: ${formatTime12(session.startTime, false)}`;
 
-  // Render quick product buttons
-  document.getElementById('modalProductsButtons').innerHTML = appState.products.map(p => `
-    <button onclick="addProductToSession(${session.id}, ${p.id})"
-      class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:border-sky-400 hover:bg-sky-50 text-xs font-bold transition">
-      <span>${p.icon} ${p.name}</span>
-      <span class="text-sky-600">${p.price.toLocaleString()}</span>
-    </button>
-  `).join('');
+  const mpSearch = document.getElementById('modalProductsSearchInput');
+  if (mpSearch) mpSearch.value = '';
+  renderModalProductsButtons();
 
   // Check free hours & active valid subscriptions
   const now = getTrueNow();
@@ -2511,6 +2681,21 @@ function openSessionDetail(sessionId) {
 
   updateModalSessionLiveNumbers();
   openModal('sessionDetailModal');
+}
+
+function renderModalProductsButtons() {
+  if (!selectedSessionId) return;
+  const q = (document.getElementById('modalProductsSearchInput')?.value || '').trim().toLowerCase();
+  const filtered = (appState.products || []).filter(p => (p.name || '').toLowerCase().includes(q));
+  const box = document.getElementById('modalProductsButtons');
+  if (!box) return;
+  box.innerHTML = filtered.map(p => `
+    <button onclick="addProductToSession(${selectedSessionId}, ${p.id})"
+      class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:border-sky-400 hover:bg-sky-50 text-xs font-bold transition">
+      <span>${p.icon} ${p.name}</span>
+      <span class="text-sky-600">${p.price.toLocaleString()}</span>
+    </button>
+  `).join('') || '<p class="col-span-full text-center text-xs text-slate-400 py-3 font-bold">لا يوجد منتج مطابق للبحث</p>';
 }
 
 function toggleEditStartTimeBox() {
@@ -2604,10 +2789,8 @@ function updateModalSessionLiveNumbers() {
   const session = appState.sessions.find(s => s.id === selectedSessionId);
   if (!session || session.checkedOut) return;
 
-  const elapsed = getTrueNow() - session.startTime;
-  const timeCost = calculateTimeCost(elapsed, appState.settings.hourlyRate);
-  const ordersTotal = (session.orders || []).reduce((sum, o) => sum + o.price, 0);
-  const subtotal = timeCost + ordersTotal;
+  const bill = getSessionBillingInfo(session, getTrueNow());
+  const subtotal = bill.total;
 
   const dType = document.getElementById('sessionDiscountType')?.value || 'amount';
   const rawDVal = Math.max(0, Number(document.getElementById('sessionDiscountValue')?.value) || 0);
@@ -2619,8 +2802,17 @@ function updateModalSessionLiveNumbers() {
   }
   const netTotal = Math.max(0, subtotal - discountSyp);
 
-  document.getElementById('modalSessionDuration').textContent = formatDuration(elapsed);
-  document.getElementById('modalSessionTimeCost').textContent = formatMoney(timeCost);
+  document.getElementById('modalSessionDuration').textContent = formatDuration(bill.elapsed);
+  if (bill.isSub) {
+    document.getElementById('modalSessionTimeCost').innerHTML = `<span class="text-indigo-700 text-sm">من الباقة 🎫</span><span class="block text-[10px] text-rose-600 font-bold">ينسحب ${bill.deductHours} س (يبقى ${bill.afterHours} س)</span>`;
+    const perkBanner = document.getElementById('modalSubPerkBanner');
+    if (perkBanner) {
+      perkBanner.classList.remove('hidden');
+      perkBanner.textContent = `🎫 مشترك بـ (${bill.sub.packageName}) • الرصيد الحالي: ${bill.sub.remainingHours} ساعة • ينسحب الآن: ${bill.deductHours} ساعة • المتبقي بعدها: ${bill.afterHours} ساعة${bill.sub.freePerk ? ' | 🎁 ' + bill.sub.freePerk : ''}`;
+    }
+  } else {
+    document.getElementById('modalSessionTimeCost').textContent = formatMoney(bill.timeCost);
+  }
   document.getElementById('modalSessionGrandTotal').textContent = formatMoney(netTotal);
 
   const hintEl = document.getElementById('modalDiscountAppliedHint');
@@ -2654,7 +2846,8 @@ function checkoutSession(mode) {
   const session = appState.sessions.find(s => s.id === selectedSessionId);
   if (!session || session.checkedOut) return;
 
-  finalizeCustomerSessionCheckout(session, mode);
+  const effectiveMode = (mode === 'cash' && getActiveCustomerSub(session.customerId)) ? 'sub' : mode;
+  finalizeCustomerSessionCheckout(session, effectiveMode);
   SoundFX.scanCheckOut();
   closeModal('sessionDetailModal');
   pushStateToCloud();
@@ -2679,6 +2872,77 @@ function deleteActiveSessionMistake(event, sessionId) {
     closeModal('sessionDetailModal');
     selectedSessionId = null;
   }
+  SoundFX.remove();
+  pushStateToCloud();
+  renderAll();
+}
+
+function findMatchingDailyTxIndex(session) {
+  if (!session || !Array.isArray(appState.daily)) return -1;
+  if (session.dailyTxId) {
+    const byId = appState.daily.findIndex(d => d.id === session.dailyTxId || d.sessionId === session.id);
+    if (byId !== -1) return byId;
+  }
+  return appState.daily.findIndex(d =>
+    d.type === 'جلسة دراسة' &&
+    String(d.title || '').startsWith(session.customerName + ' - ') &&
+    Number(d.amount) === Number(session.finalAmount)
+  );
+}
+
+function openEditCheckedOutSessionModal(event, sessionId) {
+  if (event) event.stopPropagation();
+  if (!canWrite(true)) return;
+  const s = (appState.sessions || []).find(x => x.id === sessionId && x.checkedOut);
+  if (!s) return;
+  document.getElementById('editCoSessionId').value = s.id;
+  document.getElementById('editCoSessionCustName').textContent = `${s.customerName} (${s.customerCode})`;
+  document.getElementById('editCoSessionAmount').value = Number(s.finalAmount) || 0;
+  document.getElementById('editCoSessionDuration').value = s.finalDuration || '';
+  document.getElementById('editCoSessionNote').value = s.adminEditNote || '';
+  openModal('editCheckedOutSessionModal');
+}
+
+function saveEditedCheckedOutSession() {
+  if (!canWrite(true)) return;
+  const sid = Number(document.getElementById('editCoSessionId').value);
+  const newAmount = Math.max(0, Number(document.getElementById('editCoSessionAmount').value) || 0);
+  const newDur = document.getElementById('editCoSessionDuration').value.trim();
+  const note = document.getElementById('editCoSessionNote').value.trim();
+  const s = (appState.sessions || []).find(x => x.id === sid && x.checkedOut);
+  if (!s) return;
+
+  const txIdx = findMatchingDailyTxIndex(s);
+  s.finalAmount = newAmount;
+  if (newDur) s.finalDuration = newDur;
+  s.adminEditNote = note;
+
+  if (txIdx !== -1) {
+    appState.daily[txIdx].amount = newAmount;
+    if (note && !String(appState.daily[txIdx].title || '').includes(note)) {
+      appState.daily[txIdx].title += ` | تعديل مدير: ${note}`;
+    }
+  }
+
+  SoundFX.success();
+  closeModal('editCheckedOutSessionModal');
+  pushStateToCloud();
+  renderAll();
+}
+
+function adminDeleteCheckedOutSession(event, sessionId) {
+  if (event) event.stopPropagation();
+  if (!canWrite(true)) return;
+  const s = (appState.sessions || []).find(x => x.id === sessionId && x.checkedOut);
+  if (!s) return;
+  if (!confirm(`⚠️ حذف نهائي (صلاحية المدير الكامل):
+هل تريد حذف جلسة "${s.customerName}" وإلغاء مبلغها (${formatMoney(s.finalAmount)}) من دخل اليوم والصندوق؟`)) return;
+
+  const txIdx = findMatchingDailyTxIndex(s);
+  if (txIdx !== -1) {
+    appState.daily.splice(txIdx, 1);
+  }
+  appState.sessions = (appState.sessions || []).filter(x => x.id !== sessionId);
   SoundFX.remove();
   pushStateToCloud();
   renderAll();
@@ -2767,13 +3031,37 @@ function renderHallTab() {
         <div class="lg:col-span-2 bg-white p-6 rounded-3xl border-2 border-amber-400 shadow-md space-y-5">
           <div class="flex flex-wrap justify-between items-start gap-4 border-b pb-4">
             <div>
-              <span class="bg-amber-100 text-amber-800 text-xs font-extrabold px-3 py-1 rounded-full">حجز قاعة كاملة نشط</span>
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="bg-amber-100 text-amber-800 text-xs font-extrabold px-3 py-1 rounded-full">حجز قاعة كاملة نشط</span>
+                <button onclick="toggleEditHallStartTimeBox()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold transition">
+                  ✏️ تعديل وقت الدخول
+                </button>
+              </div>
               <h3 class="text-2xl font-black text-slate-800 mt-2">${hs.renterName}</h3>
-              <p class="text-xs text-slate-500 mt-1">📱 ${hs.phone || 'بدون رقم'} | 📝 ${hs.notes || 'بدون ملاحظات'}</p>
+              <p class="text-xs text-slate-500 mt-1">📱 ${hs.phone || 'بدون رقم'} | 📝 ${hs.notes || 'بدون ملاحظات'} | 🕒 دخول: ${formatTime12(hs.startTime, false)}</p>
             </div>
             <div class="text-left bg-slate-900 text-white px-5 py-3 rounded-2xl">
               <p class="text-[11px] text-sky-400 font-bold">الوقت المنقضي</p>
               <p id="hallDetailTimer" class="text-2xl font-black font-mono">${formatDuration(elapsed)}</p>
+            </div>
+          </div>
+
+          <!-- Edit Hall Check-In Time Box (12-Hour System) -->
+          <div id="editHallStartTimeBox" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-black text-amber-900">تعديل وقت وتاريخ دخول القاعة (نظام 12 ساعة):</p>
+              <p class="text-[11px] text-amber-700">سيتم إعادة احتساب المدة والتكلفة تلقائياً بناءً على الوقت الجديد</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5" dir="ltr">
+              <input id="editHallDateInput" type="date" class="px-2.5 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-bold">
+              <select id="editHallHourInput" class="px-2 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-bold"></select>
+              <span class="font-black text-amber-900">:</span>
+              <select id="editHallMinInput" class="px-2 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-bold"></select>
+              <select id="editHallPeriodInput" dir="rtl" class="px-2.5 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-extrabold text-amber-900">
+                <option value="AM">ص (صباحاً)</option>
+                <option value="PM">م (مساءً)</option>
+              </select>
+              <button onclick="saveEditedHallStartTime()" dir="rtl" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs shadow mr-1">حفظ الوقت</button>
             </div>
           </div>
 
@@ -2787,14 +3075,36 @@ function renderHallTab() {
               <p class="text-lg font-black text-sky-600 mt-1">${formatMoney(ordersTotal)}</p>
             </div>
             <div class="bg-emerald-50 p-3 rounded-2xl border border-emerald-200">
-              <p class="text-xs text-emerald-700 font-bold">الإجمالي النهائي</p>
-              <p id="hallDetailGrandTotal" class="text-lg font-black text-emerald-700 mt-1">${formatMoney(timeCost + ordersTotal)}</p>
+              <p class="text-xs text-emerald-700 font-bold">الإجمالي الصافي</p>
+              <p id="hallDetailGrandTotal" class="text-lg font-black text-emerald-700 mt-1">${formatMoney(getHallNetTotal(timeCost, ordersTotal).netTotal)}</p>
+              <p id="hallDiscountAppliedHint" class="hidden text-[10px] font-extrabold text-rose-600 mt-0.5"></p>
             </div>
           </div>
 
-          <div>
-            <p class="text-xs font-extrabold text-slate-600 mb-2">➕ إضافة ضيافة أو طباعة لحساب القاعة:</p>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <!-- Optional Hall Checkout Discount Box -->
+          <div class="bg-rose-50/70 border border-rose-200 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5 text-xs font-black text-rose-900">
+              <span>🏷️</span><span>خصم للقاعة (اختياري):</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5 flex-1 justify-end">
+              <select id="hallDiscountType" onchange="onHallDiscountInputChange()" class="px-2.5 py-1.5 bg-white border border-rose-200 rounded-xl text-xs font-extrabold text-slate-700">
+                <option value="amount" ${(hs.discountType || 'amount') === 'amount' ? 'selected' : ''}>مبلغ (ل.س)</option>
+                <option value="percent" ${hs.discountType === 'percent' ? 'selected' : ''}>نسبة (%)</option>
+              </select>
+              <input id="hallDiscountValue" type="number" min="0" placeholder="0" value="${hs.discountValue || ''}" oninput="onHallDiscountInputChange()" dir="ltr"
+                class="w-24 px-2.5 py-1.5 bg-white border border-rose-200 rounded-xl text-xs font-black text-center">
+              <input id="hallDiscountNote" type="text" placeholder="سبب الخصم (اختياري)" value="${hs.discountNote || ''}" oninput="onHallDiscountInputChange()"
+                class="w-36 sm:w-44 px-2.5 py-1.5 bg-white border border-rose-200 rounded-xl text-xs font-bold">
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <p class="text-xs font-extrabold text-slate-600">➕ إضافة ضيافة أو طباعة لحساب القاعة:</p>
+              <input id="hallProductsSearchInput" type="text" oninput="renderHallProductsGrid()" placeholder="🔍 ابحث عن منتج أو خدمة..."
+                class="px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold w-48 sm:w-56 focus:outline-none focus:ring-2 focus:ring-amber-500">
+            </div>
+            <div id="hallProductsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
               ${appState.products.map(p => `
                 <button onclick="addProductToHall(${p.id})" class="p-2.5 rounded-xl border hover:border-amber-400 hover:bg-amber-50 text-xs font-bold flex justify-between items-center transition">
                   <span>${p.icon} ${p.name}</span>
@@ -2861,16 +3171,37 @@ function startHallBooking() {
 
 function addProductToHall(prodId) {
   if (!canWrite(false) || !appState.hallSession) return;
-  const prod = appState.products.find(p => p.id === prodId);
+  const prod = (appState.products || []).find(p => String(p.id) === String(prodId));
   if (!prod) return;
-  appState.hallSession.orders.push({ name: prod.name, price: prod.price });
+  if (!Array.isArray(appState.hallSession.orders)) {
+    appState.hallSession.orders = appState.hallSession.orders ? Object.values(appState.hallSession.orders) : [];
+  }
+  const prevSearch = document.getElementById('hallProductsSearchInput')?.value || '';
+  appState.hallSession.orders.push({
+    id: Date.now() + Math.random(),
+    name: prod.name,
+    price: Number(prod.price) || 0,
+    time: formatTime12(getTrueNow(), false)
+  });
+  SoundFX.itemAdd();
   pushStateToCloud();
   renderHallTab();
+  if (prevSearch) {
+    const inp = document.getElementById('hallProductsSearchInput');
+    if (inp) {
+      inp.value = prevSearch;
+      renderHallProductsGrid();
+    }
+  }
 }
 
 function removeHallOrder(idx) {
   if (!canWrite(false) || !appState.hallSession) return;
+  if (!Array.isArray(appState.hallSession.orders)) {
+    appState.hallSession.orders = appState.hallSession.orders ? Object.values(appState.hallSession.orders) : [];
+  }
   appState.hallSession.orders.splice(idx, 1);
+  SoundFX.remove();
   pushStateToCloud();
   renderHallTab();
 }
@@ -2901,21 +3232,121 @@ function cancelHallBookingMistake() {
   renderAll();
 }
 
+function getHallNetTotal(timeCost, ordersTotal) {
+  const hs = appState.hallSession;
+  const subtotal = (timeCost || 0) + (ordersTotal || 0);
+  if (!hs) return { subtotal, discountSyp: 0, netTotal: subtotal };
+  const dType = hs.discountType || 'amount';
+  const rawDVal = Math.max(0, Number(hs.discountValue) || 0);
+  let discountSyp = 0;
+  if (rawDVal > 0) {
+    discountSyp = dType === 'percent'
+      ? Math.round((subtotal * Math.min(100, rawDVal)) / 100)
+      : Math.min(subtotal, Math.round(rawDVal));
+  }
+  return { subtotal, discountSyp, netTotal: Math.max(0, subtotal - discountSyp) };
+}
+
+function onHallDiscountInputChange() {
+  if (!appState.hallSession) return;
+  appState.hallSession.discountType = document.getElementById('hallDiscountType')?.value || 'amount';
+  appState.hallSession.discountValue = Math.max(0, Number(document.getElementById('hallDiscountValue')?.value) || 0);
+  appState.hallSession.discountNote = (document.getElementById('hallDiscountNote')?.value || '').trim();
+  const elapsed = getTrueNow() - appState.hallSession.startTime;
+  const cost = calculateTimeCost(elapsed, appState.hallSession.hourlyRate);
+  const ordersTot = (appState.hallSession.orders || []).reduce((s, o) => s + o.price, 0);
+  const { subtotal, discountSyp, netTotal } = getHallNetTotal(cost, ordersTot);
+  const dGrand = document.getElementById('hallDetailGrandTotal');
+  if (dGrand) dGrand.textContent = formatMoney(netTotal);
+  const hint = document.getElementById('hallDiscountAppliedHint');
+  if (hint) {
+    if (discountSyp > 0) {
+      hint.classList.remove('hidden');
+      hint.textContent = `بعد خصم ${discountSyp.toLocaleString()} ل.س (بدل ${subtotal.toLocaleString()})`;
+    } else {
+      hint.classList.add('hidden');
+    }
+  }
+}
+
+function renderHallProductsGrid() {
+  const q = (document.getElementById('hallProductsSearchInput')?.value || '').trim().toLowerCase();
+  const filtered = (appState.products || []).filter(p => (p.name || '').toLowerCase().includes(q));
+  const box = document.getElementById('hallProductsGrid');
+  if (!box) return;
+  box.innerHTML = filtered.map(p => `
+    <button onclick="addProductToHall(${p.id})" class="p-2.5 rounded-xl border hover:border-amber-400 hover:bg-amber-50 text-xs font-bold flex justify-between items-center transition">
+      <span>${p.icon} ${p.name}</span>
+      <span class="text-amber-700">${p.price.toLocaleString()}</span>
+    </button>
+  `).join('') || '<p class="col-span-full text-center text-xs text-slate-400 py-3 font-bold">لا يوجد منتج مطابق للبحث</p>';
+}
+
+function toggleEditHallStartTimeBox() {
+  if (!canWrite(false) || !appState.hallSession) return;
+  const box = document.getElementById('editHallStartTimeBox');
+  if (!box) return;
+  box.classList.toggle('hidden');
+  if (!box.classList.contains('hidden')) {
+    const hSel = document.getElementById('editHallHourInput');
+    const mSel = document.getElementById('editHallMinInput');
+    if (hSel && hSel.options.length === 0) {
+      hSel.innerHTML = Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}">${String(i + 1).padStart(2, '0')}</option>`).join('');
+    }
+    if (mSel && mSel.options.length === 0) {
+      mSel.innerHTML = Array.from({ length: 60 }, (_, i) => `<option value="${i}">${String(i).padStart(2, '0')}</option>`).join('');
+    }
+    const d = new Date(appState.hallSession.startTime);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    document.getElementById('editHallDateInput').value = `${yyyy}-${mm}-${dd}`;
+    let h = d.getHours();
+    const period = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    if (h === 0) h = 12;
+    hSel.value = String(h);
+    mSel.value = String(d.getMinutes());
+    document.getElementById('editHallPeriodInput').value = period;
+  }
+}
+
+function saveEditedHallStartTime() {
+  if (!canWrite(false) || !appState.hallSession) return;
+  const dateVal = document.getElementById('editHallDateInput').value;
+  let hourVal = parseInt(document.getElementById('editHallHourInput').value, 10);
+  const minVal = parseInt(document.getElementById('editHallMinInput').value, 10);
+  const periodVal = document.getElementById('editHallPeriodInput').value;
+  if (!dateVal || isNaN(hourVal) || isNaN(minVal)) return alert('يرجى تحديد التاريخ والوقت بشكل صحيح');
+  if (periodVal === 'PM' && hourVal < 12) hourVal += 12;
+  if (periodVal === 'AM' && hourVal === 12) hourVal = 0;
+  const [y, m, d] = dateVal.split('-').map(Number);
+  const newTs = new Date(y, m - 1, d, hourVal, minVal, 0).getTime();
+  if (isNaN(newTs)) return alert('وقت غير صالح');
+  appState.hallSession.startTime = newTs;
+  SoundFX.success();
+  pushStateToCloud();
+  renderAll();
+}
+
 function checkoutHallBooking() {
   if (!canWrite(false) || !appState.hallSession) return;
   const hs = appState.hallSession;
   const elapsed = getTrueNow() - hs.startTime;
   const timeCost = calculateTimeCost(elapsed, hs.hourlyRate);
   const ordersTotal = (hs.orders || []).reduce((s, o) => s + o.price, 0);
-  const total = timeCost + ordersTotal;
+  const { discountSyp, netTotal } = getHallNetTotal(timeCost, ordersTotal);
+  const discountSuffix = discountSyp > 0
+    ? ` | خصم: ${discountSyp.toLocaleString()} ل.س${hs.discountNote ? ` (${hs.discountNote})` : ''}`
+    : '';
 
   appState.daily.unshift({
     id: Date.now(),
     date: formatDateTime12(getTrueNow()),
     isoDate: new Date(getTrueNow()).toISOString().slice(0, 10),
     type: 'حجز قاعة كاملة',
-    title: `${hs.renterName} (${formatDuration(elapsed)})`,
-    amount: total
+    title: `${hs.renterName} (${formatDuration(elapsed)})${discountSuffix}`,
+    amount: netTotal
   });
   appState.hallSession = null;
   pushStateToCloud();
@@ -3515,6 +3946,14 @@ function deleteSocialLink(id) {
   renderCustomerPageControls();
 }
 
+function saveQrDoorScanMode(mode) {
+  if (!canWrite(false)) return;
+  appState.settings = appState.settings || {};
+  appState.settings.qrDoorScanMode = mode;
+  SoundFX.success();
+  pushStateToCloud();
+}
+
 function saveWifiSettings() {
   if (!canWrite(false)) return;
   const active = document.getElementById('wifiActiveCheck').checked;
@@ -3535,6 +3974,8 @@ function renderCustomerPageControls() {
   document.getElementById('wifiSsidInput').value = wf.ssid || '';
   document.getElementById('wifiPasswordInput').value = wf.password || '';
   document.getElementById('wifiSecuritySelect').value = wf.security || 'WPA';
+  const qrModeSel = document.getElementById('qrDoorScanModeSelect');
+  if (qrModeSel) qrModeSel.value = (appState.settings && appState.settings.qrDoorScanMode) || 'notify';
 
   document.getElementById('announcementsAdminList').innerHTML = (appState.announcements || []).map(a => `
     <div class="p-3 rounded-xl border ${a.active ? 'bg-sky-50/50 border-sky-200' : 'bg-slate-50 opacity-60'} flex justify-between items-start gap-2">
@@ -4130,6 +4571,19 @@ function renderLiveSessions() {
 
     // Checked-out customer card stays at bottom with RED styling
     if (s.checkedOut) {
+      const isFullAdmin = currentLoggedUser && currentLoggedUser.role === 'admin';
+      const adminActionsHtml = isFullAdmin ? `
+        <div class="flex items-center gap-1.5 pt-2 border-t border-rose-200/80">
+          <button onclick="openEditCheckedOutSessionModal(event, ${s.id})"
+            class="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-extrabold py-1.5 rounded-xl text-[11px] transition">
+            ✏️ تعديل (مدير)
+          </button>
+          <button onclick="adminDeleteCheckedOutSession(event, ${s.id})"
+            class="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-extrabold py-1.5 rounded-xl text-[11px] shadow-sm transition">
+            🗑️ حذف الجلسة والمبلغ
+          </button>
+        </div>
+      ` : '';
       return `
         <div onclick="openSessionDetail(${s.id})" class="cursor-pointer bg-rose-50/90 p-5 rounded-3xl border-2 border-rose-300 shadow-sm card-hover space-y-3 relative">
           <div class="flex justify-between items-start gap-2">
@@ -4141,7 +4595,7 @@ function renderLiveSessions() {
               <span class="bg-rose-600 text-white text-xs font-extrabold px-3 py-1 rounded-xl shadow-sm">
                 🔴 تم تسجيل الخروج
               </span>
-              <button onclick="removeCheckedOutCard(event, ${s.id})" title="إزالة البطاقة" class="bg-white/80 hover:bg-white text-rose-600 font-bold w-6 h-6 rounded-lg text-xs border border-rose-200">✕</button>
+              ${isFullAdmin ? `<button onclick="removeCheckedOutCard(event, ${s.id})" title="إخفاء البطاقة من الشاشة فقط" class="bg-white/80 hover:bg-white text-rose-600 font-bold w-6 h-6 rounded-lg text-xs border border-rose-200">✕</button>` : ''}
             </div>
           </div>
           <div class="bg-rose-900/90 text-white rounded-2xl p-3 flex items-center justify-between text-xs">
@@ -4152,34 +4606,40 @@ function renderLiveSessions() {
             <span>خروج: ${s.endTime ? formatTime12(s.endTime, false) : ''}</span>
             <span>انقر لبدء جلسة جديدة ⬅️</span>
           </div>
+          ${adminActionsHtml}
         </div>
       `;
     }
 
     // Active ongoing session card (always at TOP)
-    const elapsed = now - s.startTime;
-    const timeCost = calculateTimeCost(elapsed, appState.settings.hourlyRate);
-    const ordersTotal = (s.orders || []).reduce((sum, o) => sum + o.price, 0);
+    const bill = getSessionBillingInfo(s, now);
+    const subBadgeHtml = bill.isSub ? `
+      <div id="subinfo-${s.id}" class="bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-xl px-3 py-1.5 text-[11px] font-extrabold flex flex-wrap items-center justify-between gap-1">
+        <span>🎫 ${bill.sub.packageName} (فيها: ${bill.sub.remainingHours} س)</span>
+        <span class="text-rose-600">ينسحب: ${bill.deductHours} س | يبقى: ${bill.afterHours} س</span>
+      </div>
+    ` : '';
     return `
-      <div onclick="openSessionDetail(${s.id})" class="cursor-pointer bg-white p-5 rounded-3xl border-2 border-sky-200 hover:border-sky-400 shadow-sm card-hover space-y-4">
+      <div onclick="openSessionDetail(${s.id})" class="cursor-pointer bg-white p-5 rounded-3xl border-2 ${bill.isSub ? 'border-indigo-300 hover:border-indigo-500' : 'border-sky-200 hover:border-sky-400'} shadow-sm card-hover space-y-3">
         <div class="flex justify-between items-start gap-2">
           <div>
-            <span class="text-[11px] font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-600">${s.customerCode}</span>
+            <span class="text-[11px] font-mono font-extrabold px-2.5 py-0.5 rounded-full ${bill.isSub ? 'bg-indigo-50 text-indigo-700' : 'bg-sky-50 text-sky-600'}">${s.customerCode}</span>
             <h3 class="text-lg font-black text-slate-800 mt-1">${s.customerName}</h3>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
-            <span id="cost-${s.id}" class="bg-emerald-50 text-emerald-700 text-xs font-extrabold px-3 py-1 rounded-xl border border-emerald-200">
-              ${formatMoney(timeCost + ordersTotal)}
+            <span id="cost-${s.id}" class="${bill.isSub ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'} text-xs font-extrabold px-3 py-1 rounded-xl border">
+              ${bill.isSub ? (bill.ordersTotal > 0 ? formatMoney(bill.ordersTotal) + ' (طلبات)' : 'من الباقة 🎫') : formatMoney(bill.total)}
             </span>
             <button onclick="deleteActiveSessionMistake(event, ${s.id})" title="حذف الجلسة (دخلت بالخطأ)" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold w-7 h-7 rounded-xl text-xs flex items-center justify-center transition">🗑️</button>
           </div>
         </div>
+        ${subBadgeHtml}
         <div class="bg-slate-800 text-white rounded-2xl p-3 flex items-center justify-between">
           <span class="text-xs text-slate-300 font-bold">الوقت المنقضي:</span>
-          <span id="timer-${s.id}" class="text-xl font-black font-mono text-sky-400">${formatDuration(elapsed)}</span>
+          <span id="timer-${s.id}" class="text-xl font-black font-mono text-sky-400">${formatDuration(bill.elapsed)}</span>
         </div>
         <div class="flex justify-between items-center text-xs text-slate-500 font-bold">
-          <span>الطلبات: ${(s.orders || []).length} (${ordersTotal.toLocaleString()} ل.س)</span>
+          <span>الطلبات: ${(s.orders || []).length} (${bill.ordersTotal.toLocaleString()} ل.س)</span>
           <span class="text-sky-600">انقر للإدارة ⬅️</span>
         </div>
       </div>
@@ -4230,13 +4690,20 @@ setInterval(() => {
   const now = getTrueNow();
   appState.sessions.forEach(s => {
     if (s.checkedOut) return;
+    const bill = getSessionBillingInfo(s, now);
     const el = document.getElementById(`timer-${s.id}`);
-    if (el) el.textContent = formatDuration(now - s.startTime);
+    if (el) el.textContent = formatDuration(bill.elapsed);
     const costEl = document.getElementById(`cost-${s.id}`);
     if (costEl) {
-      const tCost = calculateTimeCost(now - s.startTime, appState.settings.hourlyRate);
-      const oTot = (s.orders || []).reduce((sum, o) => sum + o.price, 0);
-      costEl.textContent = formatMoney(tCost + oTot);
+      costEl.textContent = bill.isSub
+        ? (bill.ordersTotal > 0 ? formatMoney(bill.ordersTotal) + ' (طلبات)' : 'من الباقة 🎫')
+        : formatMoney(bill.total);
+    }
+    if (bill.isSub) {
+      const subEl = document.getElementById(`subinfo-${s.id}`);
+      if (subEl) {
+        subEl.innerHTML = `<span>🎫 ${bill.sub.packageName} (فيها: ${bill.sub.remainingHours} س)</span><span class="text-rose-600">ينسحب: ${bill.deductHours} س | يبقى: ${bill.afterHours} س</span>`;
+      }
     }
   });
   if (appState.hallSession) {
@@ -4248,12 +4715,22 @@ setInterval(() => {
     if (bTimer) bTimer.textContent = formatDuration(elapsed);
     if (bCost) bCost.textContent = formatMoney(cost + ordersTot);
 
+    const { subtotal: hSub, discountSyp: hDisc, netTotal: hNet } = getHallNetTotal(cost, ordersTot);
     const dTimer = document.getElementById('hallDetailTimer');
     const dTimeCost = document.getElementById('hallDetailTimeCost');
     const dGrand = document.getElementById('hallDetailGrandTotal');
+    const dHint = document.getElementById('hallDiscountAppliedHint');
     if (dTimer) dTimer.textContent = formatDuration(elapsed);
     if (dTimeCost) dTimeCost.textContent = formatMoney(cost);
-    if (dGrand) dGrand.textContent = formatMoney(cost + ordersTot);
+    if (dGrand) dGrand.textContent = formatMoney(hNet);
+    if (dHint) {
+      if (hDisc > 0) {
+        dHint.classList.remove('hidden');
+        dHint.textContent = `بعد خصم ${hDisc.toLocaleString()} ل.س (بدل ${hSub.toLocaleString()})`;
+      } else {
+        dHint.classList.add('hidden');
+      }
+    }
   }
   if (selectedSessionId) updateModalSessionLiveNumbers();
 }, 1000);

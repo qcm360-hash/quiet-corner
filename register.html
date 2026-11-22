@@ -1041,13 +1041,31 @@ function refreshMemberDashboard() {
 }
 
 function updateCustomerLiveClock(session) {
-  const elapsed = getTrueNow() - session.startTime;
+  const now = getTrueNow();
+  const elapsed = Math.max(0, now - session.startTime);
+  const hoursSpent = +(elapsed / 3600000).toFixed(2);
   const hourlyRate = (cloudData.settings && cloudData.settings.hourlyRate) || 5000;
-  const timeCost = calculateTimeCost(elapsed, hourlyRate);
   const ordersSum = (session.orders || []).reduce((s, o) => s + o.price, 0);
+  const activeSub = (cloudData.subscriptions || []).find(s =>
+    s.customerId === currentCustomer.id && Number(s.remainingHours) > 0 && (!s.expiresAt || s.expiresAt > now)
+  );
 
   document.getElementById('custLiveTimer').textContent = formatDuration(elapsed);
-  document.getElementById('custLiveTotal').textContent = `${(timeCost + ordersSum).toLocaleString()} ل.س`;
+  if (activeSub) {
+    const deduct = Math.min(Number(activeSub.remainingHours) || 0, Math.max(0.01, hoursSpent)).toFixed(2);
+    const after = Math.max(0, (Number(activeSub.remainingHours) || 0) - hoursSpent).toFixed(2);
+    document.getElementById('custLiveTotal').textContent = ordersSum > 0
+      ? `${ordersSum.toLocaleString()} ل.س (طلبات) + من الباقة 🎫`
+      : `من الباقة 🎫 (ينسحب ${deduct} س)`;
+    const remEl = document.getElementById('custSubRemaining');
+    if (remEl) {
+      const daysLeft = activeSub.expiresAt ? Math.max(0, Math.ceil((activeSub.expiresAt - now) / 86400000)) : (activeSub.durationDays || 30);
+      remEl.textContent = `رصيد الباقة: ${activeSub.remainingHours} س | ينسحب الآن: ${deduct} س | يبقى: ${after} س (${daysLeft} يوم)`;
+    }
+  } else {
+    const timeCost = calculateTimeCost(elapsed, hourlyRate);
+    document.getElementById('custLiveTotal').textContent = `${(timeCost + ordersSum).toLocaleString()} ل.س`;
+  }
 }
 
 function logoutCustomerCard() {
