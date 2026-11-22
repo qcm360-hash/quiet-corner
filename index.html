@@ -154,6 +154,11 @@
           <span class="flex items-center gap-3"><span>☕</span> مبيعات الكافيه السريعة</span>
         </button>
 
+        <button onclick="switchTab('cashbox')" data-tab="cashbox" class="nav-btn shrink-0 lg:w-full flex items-center justify-between gap-2 px-3 py-2 lg:px-4 lg:py-2.5 rounded-xl text-xs lg:text-sm font-bold text-slate-100 hover:bg-slate-600/60 transition whitespace-nowrap">
+          <span class="flex items-center gap-3"><span>💸</span> الصندوق والمسحوبات</span>
+          <span id="badgeCashboxCount" class="bg-rose-400/25 text-rose-200 text-xs px-2 py-0.5 rounded-full">0</span>
+        </button>
+
         <button onclick="switchTab('customerPageCtrl')" data-tab="customerPageCtrl" class="nav-btn shrink-0 lg:w-full flex items-center justify-between gap-2 px-3 py-2 lg:px-4 lg:py-2.5 rounded-xl text-xs lg:text-sm font-bold text-slate-100 hover:bg-slate-600/60 transition whitespace-nowrap">
           <span class="flex items-center gap-3"><span>📱</span> صفحة الزبون والإعلانات</span>
         </button>
@@ -519,6 +524,120 @@
                 </tr>
               </thead>
               <tbody id="posSalesHistoryBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 6B: SHOP CASHBOX & WITHDRAWALS ==================== -->
+      <section id="tab-cashbox" class="tab-section hidden space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-black text-slate-800">💸 صندوق المحل والمسحوبات (اليومية والشهري)</h2>
+            <p class="text-xs sm:text-sm text-slate-500">متابعة المبلغ الفعلي الموجود بالصندوق، وتسجيل المسحوبات (معاشات، فواتير، بضاعة) سواء من دخل اليوم أو من الصندوق العام</p>
+          </div>
+        </div>
+
+        <!-- 4 KPI Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div class="bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-4 sm:p-5 rounded-2xl shadow-md">
+            <p class="text-xs font-bold text-emerald-100">💰 الصافي الفعلي بصندوق المحل (الكل)</p>
+            <p id="cbNetTotal" class="text-2xl font-black mt-1.5">0 ل.س</p>
+            <p id="cbGrossTotalSub" class="text-[11px] text-emerald-100/90 font-bold mt-1">إجمالي الدخل: 0 ل.س</p>
+          </div>
+
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-xs font-bold text-slate-400">📅 صافي دخل اليوم (بعد مسحوبات اليوم)</p>
+            <p id="cbTodayNet" class="text-2xl font-black text-sky-600 mt-1.5">0 ل.س</p>
+            <p id="cbTodaySub" class="text-[11px] text-slate-500 font-bold mt-1">دخل اليوم: 0 | مسحوب: 0</p>
+          </div>
+
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-xs font-bold text-slate-400">🗓️ صافي هذا الشهر (الدخل − المسحوبات)</p>
+            <p id="cbMonthNet" class="text-2xl font-black text-indigo-600 mt-1.5">0 ل.س</p>
+            <p id="cbMonthSub" class="text-[11px] text-slate-500 font-bold mt-1">دخل الشهر: 0 | مسحوب: 0</p>
+          </div>
+
+          <div class="bg-rose-50 p-4 sm:p-5 rounded-2xl border border-rose-200 shadow-sm">
+            <p class="text-xs font-bold text-rose-600">📤 إجمالي المسحوبات الكلي</p>
+            <p id="cbTotalWithdrawn" class="text-2xl font-black text-rose-700 mt-1.5">0 ل.س</p>
+            <p id="cbWithdrawnBreakdown" class="text-[11px] text-rose-600 font-bold mt-1">من اليوم: 0 | من العام: 0</p>
+          </div>
+        </div>
+
+        <!-- Add Withdrawal Form -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <h3 class="font-black text-slate-800 text-base flex items-center gap-2"><span>➕</span> تسجيل مسحوب جديد (معاش / فاتورة / مصروف)</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div>
+              <label class="block text-[11px] font-extrabold text-slate-500 mb-1">مصدر السحب *</label>
+              <select id="wdSourceSelect" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-extrabold text-slate-800">
+                <option value="today">📅 من دخل اليوم (اليومية)</option>
+                <option value="total">🏦 من الصندوق العام / الشهري</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-extrabold text-slate-500 mb-1">نوع المسحوب *</label>
+              <select id="wdCategorySelect" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-extrabold text-slate-800">
+                <option value="معاش / رواتب">👤 معاش / رواتب</option>
+                <option value="فاتورة (كهرباء / نت / ماء)">🧾 فاتورة (كهرباء / نت / ماء)</option>
+                <option value="مشتريات بضاعة / كافيه">☕ مشتريات بضاعة / كافيه</option>
+                <option value="إيجار المحل">🏢 إيجار المحل</option>
+                <option value="صيانة ومصاريف">🔧 صيانة ومصاريف</option>
+                <option value="مسحوبات شخصية">💼 مسحوبات شخصية</option>
+                <option value="أخرى">📌 أخرى</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-extrabold text-slate-500 mb-1">المبلغ المسحوب (ل.س) *</label>
+              <input id="wdAmountInput" type="number" min="1" dir="ltr" placeholder="مثلاً: 50000" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-black text-center">
+            </div>
+            <div>
+              <label class="block text-[11px] font-extrabold text-slate-500 mb-1">البيان / التفاصيل *</label>
+              <input id="wdTitleInput" type="text" placeholder="مثلاً: معاش الموظف / فاتورة كهرباء" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold">
+            </div>
+            <div class="flex items-end">
+              <button onclick="addShopWithdrawal()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-black py-2.5 px-4 rounded-xl text-sm shadow transition">
+                💸 تسجيل السحب
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Withdrawals Log Table -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b bg-slate-50 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="font-black text-slate-800 text-sm sm:text-base">📋 سجل مسحوبات المحل</h3>
+              <p class="text-[11px] text-slate-500">تُخصم تلقائياً من صافي الصندوق واليومية حسب المصدر المحدد</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <select id="wdPeriodFilter" onchange="renderCashboxTab()" class="px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-extrabold text-slate-700">
+                <option value="today">مسحوبات اليوم فقط</option>
+                <option value="month" selected>مسحوبات هذا الشهر</option>
+                <option value="all">جميع المسحوبات</option>
+              </select>
+              <select id="wdSourceFilter" onchange="renderCashboxTab()" class="px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-extrabold text-slate-700">
+                <option value="all">كل المصادر</option>
+                <option value="today">من دخل اليوم</option>
+                <option value="total">من الصندوق العام</option>
+              </select>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs sm:text-sm">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-extrabold">
+                <tr>
+                  <th class="p-3 sm:p-4">التاريخ والوقت</th>
+                  <th class="p-3 sm:p-4">المصدر</th>
+                  <th class="p-3 sm:p-4">التصنيف</th>
+                  <th class="p-3 sm:p-4">البيان / السبب</th>
+                  <th class="p-3 sm:p-4">المبلغ المسحوب</th>
+                  <th class="p-3 sm:p-4">بواسطة</th>
+                  <th class="p-3 sm:p-4 text-center">إجراء</th>
+                </tr>
+              </thead>
+              <tbody id="cashboxWithdrawalsBody" class="divide-y divide-slate-100"></tbody>
             </table>
           </div>
         </div>
@@ -967,6 +1086,53 @@
     </div>
   </div>
 
+  <!-- 2C. Admin-Only Edit Withdrawal Modal -->
+  <div id="editWithdrawalModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-amber-200">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div>
+          <h3 class="text-lg font-black text-slate-800">✏️ تعديل مسحوب مسجل</h3>
+          <p class="text-[11px] text-amber-700 font-bold">صلاحية المدير الكامل فقط — يتحدث الصندوق والتقرير اليومي تلقائياً</p>
+        </div>
+        <button onclick="closeModal('editWithdrawalModal')" class="text-slate-400 hover:text-slate-700 font-bold text-2xl">&times;</button>
+      </div>
+      <input id="editWdId" type="hidden">
+      <div class="space-y-3 text-right">
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">مصدر السحب *</label>
+          <select id="editWdSource" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-extrabold text-slate-800">
+            <option value="today">📅 من دخل اليوم (اليومية)</option>
+            <option value="total">🏦 من الصندوق العام / الشهري</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">نوع المسحوب *</label>
+          <select id="editWdCategory" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-extrabold text-slate-800">
+            <option value="معاش / رواتب">👤 معاش / رواتب</option>
+            <option value="فاتورة (كهرباء / نت / ماء)">🧾 فاتورة (كهرباء / نت / ماء)</option>
+            <option value="مشتريات بضاعة / كافيه">☕ مشتريات بضاعة / كافيه</option>
+            <option value="إيجار المحل">🏢 إيجار المحل</option>
+            <option value="صيانة ومصاريف">🔧 صيانة ومصاريف</option>
+            <option value="مسحوبات شخصية">💼 مسحوبات شخصية</option>
+            <option value="أخرى">📌 أخرى</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">المبلغ المسحوب (ل.س) *</label>
+          <input id="editWdAmount" type="number" min="1" dir="ltr" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm font-black text-center">
+        </div>
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">البيان / التفاصيل *</label>
+          <input id="editWdTitle" type="text" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm font-bold">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button onclick="closeModal('editWithdrawalModal')" class="px-4 py-2 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100">إلغاء</button>
+        <button onclick="saveEditedWithdrawal()" class="bg-amber-600 hover:bg-amber-700 text-white font-black px-5 py-2 rounded-xl text-sm shadow transition">💾 حفظ التعديل</button>
+      </div>
+    </div>
+  </div>
+
 <!-- 3. Add Customer Modal -->
   <div id="addCustomerModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
@@ -1170,13 +1336,36 @@
           </div>
         </div>
 
+        <!-- Gross Total & Withdrawals Summary -->
+        <div class="grid grid-cols-2 gap-2.5 text-xs">
+          <div class="bg-sky-50 p-3 rounded-xl border border-sky-200">
+            <span class="text-sky-700 font-extrabold block">💰 مجموع كلشي دخل اليوم</span>
+            <span id="repGrossTotal" class="text-base font-black text-sky-900 mt-0.5 block">0 ل.س</span>
+            <span id="repTxCount" class="text-[10px] text-sky-600 font-bold">عدد الحركات: 0</span>
+          </div>
+          <div class="bg-rose-50 p-3 rounded-xl border border-rose-200">
+            <span class="text-rose-700 font-extrabold block">📤 مسحوبات من دخل اليوم</span>
+            <span id="repWithdrawnToday" class="text-base font-black text-rose-700 mt-0.5 block">0 ل.س</span>
+            <span id="repWdCount" class="text-[10px] text-rose-600 font-bold">عدد المسحوبات: 0</span>
+          </div>
+        </div>
+
+        <!-- Withdrawals Details inside Daily Report (shown when > 0) -->
+        <div id="repWithdrawalsDetailBox" class="hidden bg-rose-50/60 border border-rose-200/80 rounded-2xl p-3 space-y-1.5 text-xs">
+          <p class="font-black text-rose-800 text-[11px]">تفاصيل المسحوبات من دخل اليوم:</p>
+          <div id="repWithdrawalsDetailList" class="space-y-1 text-[11px]"></div>
+        </div>
+
+        <!-- Net Total Remaining in Today's Cashbox -->
         <div class="bg-emerald-600 text-white p-4 rounded-2xl flex items-center justify-between">
           <div>
-            <span class="text-xs text-emerald-100 font-bold block">صافي إيرادات اليوم الإجمالي</span>
-            <span id="repTxCount" class="text-[11px] text-emerald-200">عدد الحركات: 0</span>
+            <span class="text-xs text-emerald-100 font-extrabold block">✅ الصافي المتبقي بالصندوق لليوم</span>
+            <span class="text-[11px] text-emerald-200">مجموع الدخل − المسحوبات من اليوم</span>
           </div>
           <span id="repGrandTotal" class="text-2xl font-black">0 ل.س</span>
         </div>
+
+        <p id="repGeneralWdNote" class="hidden text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-1.5 text-center"></p>
 
         <div class="text-center pt-1">
           <a href="https://www.instagram.com/karem_yseer?rpxt=MTBhdHpsM3Zsa2kzaQ==" target="_blank" rel="noopener noreferrer" class="sig-font text-xl text-slate-400 hover:text-sky-600">BY: KaremYseer</a>
@@ -1298,6 +1487,7 @@ let appState = {
   hallSession: null,
   subscriptions: [],
   daily: [],
+  withdrawals: [],
   closedDays: [],
   users: [],
   loyaltyOffers: [
@@ -4084,7 +4274,15 @@ function buildTodaySummaryObject() {
   const hallRev = todayTxs.filter(d => d.type === 'حجز قاعة كاملة').reduce((s, d) => s + (Number(d.amount) || 0), 0);
   const subRev = todayTxs.filter(d => d.type === 'اشتراك باقة').reduce((s, d) => s + (Number(d.amount) || 0), 0);
   const posRev = todayTxs.filter(d => d.type === 'مبيعات كافيه').reduce((s, d) => s + (Number(d.amount) || 0), 0);
-  const grandTotal = studyRev + hallRev + subRev + posRev;
+  const grossTotal = studyRev + hallRev + subRev + posRev;
+
+  const allWd = appState.withdrawals || [];
+  const todayWdList = allWd.filter(w => w.isoDate === todayIso && w.source === 'today');
+  const todayGeneralWdList = allWd.filter(w => w.isoDate === todayIso && w.source === 'total');
+
+  const withdrawnFromToday = todayWdList.reduce((s, w) => s + (Number(w.amount) || 0), 0);
+  const withdrawnFromGeneralToday = todayGeneralWdList.reduce((s, w) => s + (Number(w.amount) || 0), 0);
+  const netTotal = grossTotal - withdrawnFromToday;
 
   return {
     id: Math.floor(now),
@@ -4097,20 +4295,57 @@ function buildTodaySummaryObject() {
     hallRev,
     subRev,
     posRev,
-    grandTotal
+    grossTotal,
+    withdrawnFromToday,
+    withdrawnFromGeneralToday,
+    withdrawalsCount: todayWdList.length,
+    withdrawalsItems: todayWdList.map(w => ({ category: w.category, title: w.title, amount: w.amount })),
+    grandTotal: netTotal
   };
 }
 
 function populateReportModal(summaryObj, isArchivedView = false) {
   activeReportPreview = summaryObj;
+  const gross = summaryObj.grossTotal != null ? Number(summaryObj.grossTotal) : (Number(summaryObj.grandTotal) || 0);
+  const wdToday = Number(summaryObj.withdrawnFromToday) || 0;
+  const wdGen = Number(summaryObj.withdrawnFromGeneralToday) || 0;
+  const net = summaryObj.grossTotal != null ? (gross - wdToday) : (Number(summaryObj.grandTotal) || 0);
+  const wdItems = summaryObj.withdrawalsItems || [];
+
   document.getElementById('repCardDate').textContent = summaryObj.displayDate;
   document.getElementById('repCardTime').textContent = `وقت الإغلاق: ${summaryObj.displayTime} (${summaryObj.closedBy || ''})`;
   document.getElementById('repStudyRev').textContent = formatMoney(summaryObj.studyRev);
   document.getElementById('repHallRev').textContent = formatMoney(summaryObj.hallRev);
   document.getElementById('repSubRev').textContent = formatMoney(summaryObj.subRev);
   document.getElementById('repPosRev').textContent = formatMoney(summaryObj.posRev);
-  document.getElementById('repTxCount').textContent = `عدد الحركات المالية: ${summaryObj.txCount}`;
-  document.getElementById('repGrandTotal').textContent = formatMoney(summaryObj.grandTotal);
+  document.getElementById('repGrossTotal').textContent = formatMoney(gross);
+  document.getElementById('repTxCount').textContent = `عدد حركات الدخل: ${summaryObj.txCount || 0}`;
+  document.getElementById('repWithdrawnToday').textContent = wdToday > 0 ? `− ${formatMoney(wdToday)}` : '0 ل.س';
+  document.getElementById('repWdCount').textContent = `عدد المسحوبات: ${summaryObj.withdrawalsCount || wdItems.length || 0}`;
+  document.getElementById('repGrandTotal').textContent = formatMoney(net);
+
+  const detailBox = document.getElementById('repWithdrawalsDetailBox');
+  const detailList = document.getElementById('repWithdrawalsDetailList');
+  if (wdItems.length > 0) {
+    detailBox.classList.remove('hidden');
+    detailList.innerHTML = wdItems.map(w => `
+      <div class="flex items-center justify-between bg-white/90 px-2.5 py-1.5 rounded-lg border border-rose-100">
+        <span class="font-bold text-slate-700">${w.title} <span class="text-[10px] text-slate-400">(${w.category})</span></span>
+        <span class="font-black text-rose-600 shrink-0">− ${formatMoney(w.amount)}</span>
+      </div>
+    `).join('');
+  } else {
+    detailBox.classList.add('hidden');
+    detailList.innerHTML = '';
+  }
+
+  const genNote = document.getElementById('repGeneralWdNote');
+  if (wdGen > 0) {
+    genNote.classList.remove('hidden');
+    genNote.textContent = `🏦 ملاحظة: تم أيضاً سحب ${formatMoney(wdGen)} اليوم من الصندوق العام/الشهري (لا يُخصم من صافي درج اليوم).`;
+  } else {
+    genNote.classList.add('hidden');
+  }
 
   const warnBox = document.getElementById('dailyCloseActiveWarning');
   const closeBtn = document.getElementById('btnConfirmCloseDay');
@@ -4191,7 +4426,8 @@ function renderReportsTab() {
           <span class="text-xs font-black text-sky-700">📅 ${r.displayDate}</span>
           <span class="text-[11px] text-slate-400">${r.displayTime}</span>
         </div>
-        <p class="text-lg font-black text-emerald-600 mt-1">${formatMoney(r.grandTotal)}</p>
+        <p class="text-lg font-black text-emerald-600 mt-1">الصافي: ${formatMoney(r.grandTotal)}</p>
+        ${r.grossTotal != null ? `<p class="text-[11px] font-bold text-slate-600">الدخل الكلي: ${formatMoney(r.grossTotal)} | مسحوب: ${formatMoney(r.withdrawnFromToday || 0)}</p>` : ''}
         <p class="text-[11px] text-slate-500">عدد الحركات: ${r.txCount} | بواسطة: ${r.closedBy || 'الإدارة'}</p>
       </div>
       <button onclick="viewArchivedReport(${r.id})" class="w-full bg-white hover:bg-sky-50 text-sky-700 border border-sky-200 font-bold py-1.5 rounded-xl text-xs transition">
@@ -4221,6 +4457,16 @@ function exportToExcel() {
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(txRows.length ? txRows : [{ 'ملاحظة': 'لا توجد حركات' }]), 'الحركات_المالية');
 
+  const wdRows = (appState.withdrawals || []).map(w => ({
+    'التاريخ والوقت': w.date,
+    'المصدر': w.source === 'today' ? 'من دخل اليوم' : 'من الصندوق العام',
+    'التصنيف': w.category,
+    'البيان': w.title,
+    'المبلغ المسحوب (ل.س)': w.amount,
+    'بواسطة': w.by || ''
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(wdRows.length ? wdRows : [{ 'ملاحظة': 'لا توجد مسحوبات' }]), 'مسحوبات_المحل');
+
   const closedRows = (appState.closedDays || []).map(r => ({
     'التاريخ': r.displayDate,
     'وقت الإغلاق': r.displayTime,
@@ -4229,7 +4475,9 @@ function exportToExcel() {
     'القاعة الكاملة': r.hallRev,
     'الاشتراكات': r.subRev,
     'الكافيه': r.posRev,
-    'الإجمالي الكلي': r.grandTotal
+    'مجموع كلشي دخل': r.grossTotal != null ? r.grossTotal : r.grandTotal,
+    'مسحوبات من اليوم': r.withdrawnFromToday || 0,
+    'الصافي النهائي': r.grandTotal
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(closedRows.length ? closedRows : [{ 'ملاحظة': 'لا توجد يوميات مغلقة' }]), 'اليوميات_المغلقة');
 
@@ -4662,8 +4910,183 @@ function renderLiveSessions() {
   grid.innerHTML = html;
 }
 
+
+// ==================== CASHBOX & WITHDRAWALS SYSTEM ====================
+function addShopWithdrawal() {
+  if (!canWrite(false)) return;
+  const source = document.getElementById('wdSourceSelect').value;
+  const category = document.getElementById('wdCategorySelect').value;
+  const amount = Math.round(Number(document.getElementById('wdAmountInput').value) || 0);
+  const title = document.getElementById('wdTitleInput').value.trim();
+
+  if (amount <= 0) {
+    SoundFX.error();
+    return alert('يرجى إدخال مبلغ صحيح أكبر من صفر.');
+  }
+  if (!title) {
+    SoundFX.error();
+    return alert('يرجى كتابة البيان أو سبب السحب (مثلاً: معاش، فاتورة كهرباء).');
+  }
+
+  const now = getTrueNow();
+  const isoDate = new Date(now).toISOString().slice(0, 10);
+  const monthKey = isoDate.slice(0, 7);
+
+  appState.withdrawals = appState.withdrawals || [];
+  appState.withdrawals.unshift({
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    date: formatDateTime12(now),
+    isoDate,
+    monthKey,
+    source,
+    category,
+    title,
+    amount,
+    by: currentLoggedUser ? currentLoggedUser.label : 'المدير'
+  });
+
+  document.getElementById('wdAmountInput').value = '';
+  document.getElementById('wdTitleInput').value = '';
+  SoundFX.success();
+  pushStateToCloud();
+  renderAll();
+}
+
+function openEditWithdrawalModal(wdId) {
+  if (!canWrite(true)) return;
+  const wd = (appState.withdrawals || []).find(w => w.id === wdId);
+  if (!wd) return;
+  document.getElementById('editWdId').value = wd.id;
+  document.getElementById('editWdSource').value = wd.source || 'today';
+  document.getElementById('editWdCategory').value = wd.category || 'أخرى';
+  document.getElementById('editWdAmount').value = Number(wd.amount) || 0;
+  document.getElementById('editWdTitle').value = wd.title || '';
+  openModal('editWithdrawalModal');
+}
+
+function saveEditedWithdrawal() {
+  if (!canWrite(true)) return;
+  const wdId = Number(document.getElementById('editWdId').value);
+  const source = document.getElementById('editWdSource').value;
+  const category = document.getElementById('editWdCategory').value;
+  const amount = Math.round(Number(document.getElementById('editWdAmount').value) || 0);
+  const title = document.getElementById('editWdTitle').value.trim();
+
+  if (amount <= 0) {
+    SoundFX.error();
+    return alert('يرجى إدخال مبلغ صحيح أكبر من صفر.');
+  }
+  if (!title) {
+    SoundFX.error();
+    return alert('يرجى كتابة البيان أو تفاصيل السحب.');
+  }
+
+  const wd = (appState.withdrawals || []).find(w => w.id === wdId);
+  if (!wd) return;
+
+  wd.source = source;
+  wd.category = category;
+  wd.amount = amount;
+  wd.title = title;
+  wd.editedBy = currentLoggedUser ? currentLoggedUser.label : 'المدير';
+
+  SoundFX.success();
+  closeModal('editWithdrawalModal');
+  pushStateToCloud();
+  renderAll();
+}
+
+function deleteShopWithdrawal(wdId) {
+  if (!canWrite(true)) return;
+  const wd = (appState.withdrawals || []).find(w => w.id === wdId);
+  if (!wd) return;
+  if (!confirm(`⚠️ حذف سحب (صلاحية المدير الكامل):
+هل تريد حذف "${wd.title}" بمبلغ ${formatMoney(wd.amount)} وإرجاع المبلغ لصافي الصندوق؟`)) return;
+  appState.withdrawals = (appState.withdrawals || []).filter(w => w.id !== wdId);
+  SoundFX.remove();
+  pushStateToCloud();
+  renderAll();
+}
+
+function renderCashboxTab() {
+  appState.withdrawals = appState.withdrawals || [];
+  const now = getTrueNow();
+  const todayIso = new Date(now).toISOString().slice(0, 10);
+  const monthKey = todayIso.slice(0, 7);
+
+  const allDaily = appState.daily || [];
+  const allWd = appState.withdrawals || [];
+
+  // Gross Revenues
+  const grossAll = allDaily.reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const grossToday = allDaily.filter(d => d.isoDate === todayIso).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const grossMonth = allDaily.filter(d => String(d.isoDate || '').startsWith(monthKey)).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+
+  // Withdrawals
+  const wdAllTotal = allWd.reduce((s, w) => s + (Number(w.amount) || 0), 0);
+  const wdAllFromToday = allWd.filter(w => w.source === 'today').reduce((s, w) => s + (Number(w.amount) || 0), 0);
+  const wdAllFromGeneral = allWd.filter(w => w.source === 'total').reduce((s, w) => s + (Number(w.amount) || 0), 0);
+
+  const wdTodayFromToday = allWd.filter(w => w.isoDate === todayIso && w.source === 'today').reduce((s, w) => s + (Number(w.amount) || 0), 0);
+  const wdMonthTotal = allWd.filter(w => (w.monthKey || String(w.isoDate || '').slice(0, 7)) === monthKey).reduce((s, w) => s + (Number(w.amount) || 0), 0);
+
+  const netAll = grossAll - wdAllTotal;
+  const netToday = grossToday - wdTodayFromToday;
+  const netMonth = grossMonth - wdMonthTotal;
+
+  // Update KPI Cards
+  const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setTxt('cbNetTotal', formatMoney(netAll));
+  setTxt('cbGrossTotalSub', `إجمالي الدخل: ${formatMoney(grossAll)}`);
+  setTxt('cbTodayNet', formatMoney(netToday));
+  setTxt('cbTodaySub', `دخل اليوم: ${formatMoney(grossToday)} | مسحوب من اليوم: ${formatMoney(wdTodayFromToday)}`);
+  setTxt('cbMonthNet', formatMoney(netMonth));
+  setTxt('cbMonthSub', `دخل الشهر: ${formatMoney(grossMonth)} | مسحوبات الشهر: ${formatMoney(wdMonthTotal)}`);
+  setTxt('cbTotalWithdrawn', formatMoney(wdAllTotal));
+  setTxt('cbWithdrawnBreakdown', `من اليومية: ${formatMoney(wdAllFromToday)} | من الصندوق العام: ${formatMoney(wdAllFromGeneral)}`);
+  setTxt('badgeCashboxCount', allWd.length);
+
+  // Filter table
+  const periodF = document.getElementById('wdPeriodFilter')?.value || 'month';
+  const sourceF = document.getElementById('wdSourceFilter')?.value || 'all';
+  const filtered = allWd.filter(w => {
+    if (periodF === 'today' && w.isoDate !== todayIso) return false;
+    if (periodF === 'month' && (w.monthKey || String(w.isoDate || '').slice(0, 7)) !== monthKey) return false;
+    if (sourceF !== 'all' && w.source !== sourceF) return false;
+    return true;
+  });
+
+  const isFullAdmin = currentLoggedUser && currentLoggedUser.role === 'admin';
+  const tbody = document.getElementById('cashboxWithdrawalsBody');
+  if (tbody) {
+    tbody.innerHTML = filtered.map(w => `
+      <tr class="hover:bg-slate-50 transition">
+        <td class="p-3 sm:p-4 text-xs font-mono text-slate-500">${w.date}</td>
+        <td class="p-3 sm:p-4">
+          <span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold ${w.source === 'today' ? 'bg-sky-100 text-sky-800' : 'bg-indigo-100 text-indigo-800'}">
+            ${w.source === 'today' ? '📅 من دخل اليوم' : '🏦 من الصندوق العام'}
+          </span>
+        </td>
+        <td class="p-3 sm:p-4 text-xs font-extrabold text-slate-700">${w.category}</td>
+        <td class="p-3 sm:p-4 font-bold text-slate-800">${w.title}</td>
+        <td class="p-3 sm:p-4 font-black text-rose-600">− ${formatMoney(w.amount)}</td>
+        <td class="p-3 sm:p-4 text-xs font-bold text-slate-500">${w.by || 'المدير'}</td>
+        <td class="p-3 sm:p-4 text-center">
+          ${isFullAdmin
+            ? `<div class="flex items-center justify-center gap-1.5">
+                 <button onclick="openEditWithdrawalModal(${w.id})" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold px-2.5 py-1 rounded-lg text-xs transition">✏️ تعديل</button>
+                 <button onclick="deleteShopWithdrawal(${w.id})" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold px-2.5 py-1 rounded-lg text-xs transition">🗑️ حذف</button>
+               </div>`
+            : '<span class="text-[11px] text-slate-400">للمدير فقط</span>'}
+        </td>
+      </tr>
+    `).join('') || '<tr><td colspan="7" class="p-8 text-center text-slate-400 font-bold">لا توجد مسحوبات مسجلة ضمن هذا الفلتر</td></tr>';
+  }
+}
+
 function renderAll() {
   renderLiveSessions();
+  renderCashboxTab();
   renderHallTab();
   renderCustomersTable();
   renderSubscriptions();
