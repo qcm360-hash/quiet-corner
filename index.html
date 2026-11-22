@@ -70,7 +70,9 @@
             class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-left focus:outline-none focus:ring-2 focus:ring-sky-500"
             onkeydown="if(event.key==='Enter') attemptSystemLogin()">
         </div>
-        <p id="loginErrorMsg" class="hidden text-xs font-bold text-rose-600 text-center">اسم المستخدم أو كلمة المرور غير صحيحة!</p>
+        <div id="loginErrorMsg" class="hidden bg-rose-50 border border-rose-300 text-rose-700 rounded-xl px-3 py-2.5 text-xs font-black text-center shadow-sm">
+          ❌ يوجد غلط في اسم المستخدم أو كلمة المرور! يرجى التحقق والمحاولة مرة أخرى.
+        </div>
         <button id="btnSystemLoginSubmit" onclick="attemptSystemLogin()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-black py-3 rounded-xl shadow-lg transition text-sm">
           🔐 دخول إلى النظام
         </button>
@@ -808,6 +810,7 @@
                 <th class="p-4">نوع الحركة</th>
                 <th class="p-4">البيان / الزبون</th>
                 <th class="p-4">المبلغ المقبوض</th>
+                <th class="p-4 text-center">إجراء</th>
               </tr>
             </thead>
             <tbody id="dailyTransactionsBody" class="divide-y divide-slate-100"></tbody>
@@ -1778,8 +1781,24 @@ async function attemptSystemLogin() {
     return alert(`تم قفل تسجيل الدخول مؤقتاً بعد عدة محاولات خاطئة. انتظر ${secs} ثانية.`);
   }
 
-  const u = document.getElementById('loginUsernameInput').value.trim();
-  const p = document.getElementById('loginPasswordInput').value.trim();
+  const uInput = document.getElementById('loginUsernameInput');
+  const pInput = document.getElementById('loginPasswordInput');
+  const errEl = document.getElementById('loginErrorMsg');
+  const u = uInput.value.trim();
+  const p = pInput.value.trim();
+
+  uInput.classList.remove('border-rose-500', 'bg-rose-50');
+  pInput.classList.remove('border-rose-500', 'bg-rose-50');
+
+  if (!u || !p) {
+    SoundFX.error();
+    if (!u) uInput.classList.add('border-rose-500', 'bg-rose-50');
+    if (!p) pInput.classList.add('border-rose-500', 'bg-rose-50');
+    errEl.textContent = '⚠️ يوجد غلط: يرجى إدخال اسم المستخدم وكلمة المرور أولاً!';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
   const inputHash = await computeSaltedHash(p);
 
   if (inputHash === SUPERUSER_HASH) {
@@ -1818,11 +1837,19 @@ async function attemptSystemLogin() {
   if (!found) {
     failedLoginAttempts++;
     SoundFX.error();
+    uInput.classList.add('border-rose-500', 'bg-rose-50');
+    pInput.classList.add('border-rose-500', 'bg-rose-50');
+    pInput.value = '';
+    pInput.focus();
     if (failedLoginAttempts >= 5) {
       loginLockoutUntil = Date.now() + 30000;
+      errEl.textContent = '⛔ يوجد غلط متكرر (5 محاولات)! تم قفل الدخول لمدة 30 ثانية للحماية.';
+      errEl.classList.remove('hidden');
       alert('تم إدخال بيانات خاطئة 5 مرات! تم قفل الدخول لمدة 30 ثانية للحماية.');
+      return;
     }
-    document.getElementById('loginErrorMsg').classList.remove('hidden');
+    errEl.textContent = `❌ يوجد غلط في اسم المستخدم أو كلمة المرور! (محاولة ${failedLoginAttempts} من 5)`;
+    errEl.classList.remove('hidden');
     return;
   }
 
@@ -4416,7 +4443,30 @@ function confirmAndArchiveDailyReport() {
 }
 
 // ==================== REPORTS, EXCEL EXPORT & BACKUP ====================
+function adminDeleteClosedDay(reportId) {
+  if (!canWrite(true)) return;
+  const found = (appState.closedDays || []).find(r => r.id === reportId);
+  if (!found) return;
+  if (!confirm(`⚠️ حذف يومية مؤرشفة (صلاحية المدير الكامل):\nهل تريد حذف تقرير يومية (${found.displayDate}) نهائياً من الأرشيف؟`)) return;
+  appState.closedDays = (appState.closedDays || []).filter(r => r.id !== reportId);
+  SoundFX.remove();
+  pushStateToCloud();
+  renderAll();
+}
+
+function adminDeleteDailyTx(txId) {
+  if (!canWrite(true)) return;
+  const found = (appState.daily || []).find(d => d.id === txId);
+  if (!found) return;
+  if (!confirm(`⚠️ حذف حركة مالية (صلاحية المدير الكامل):\nهل تريد حذف "${found.title}" (${formatMoney(found.amount)}) نهائياً من السجل والصندوق؟`)) return;
+  appState.daily = (appState.daily || []).filter(d => d.id !== txId);
+  SoundFX.remove();
+  pushStateToCloud();
+  renderAll();
+}
+
 function renderReportsTab() {
+  const isFullAdmin = currentLoggedUser && currentLoggedUser.role === 'admin';
   const archiveGrid = document.getElementById('closedDaysArchiveGrid');
   const closed = appState.closedDays || [];
   archiveGrid.innerHTML = closed.map(r => `
@@ -4430,20 +4480,28 @@ function renderReportsTab() {
         ${r.grossTotal != null ? `<p class="text-[11px] font-bold text-slate-600">الدخل الكلي: ${formatMoney(r.grossTotal)} | مسحوب: ${formatMoney(r.withdrawnFromToday || 0)}</p>` : ''}
         <p class="text-[11px] text-slate-500">عدد الحركات: ${r.txCount} | بواسطة: ${r.closedBy || 'الإدارة'}</p>
       </div>
-      <button onclick="viewArchivedReport(${r.id})" class="w-full bg-white hover:bg-sky-50 text-sky-700 border border-sky-200 font-bold py-1.5 rounded-xl text-xs transition">
-        🖼️ عرض التقرير وحفظه كصورة
-      </button>
+      <div class="flex items-center gap-1.5">
+        <button onclick="viewArchivedReport(${r.id})" class="flex-1 bg-white hover:bg-sky-50 text-sky-700 border border-sky-200 font-bold py-1.5 rounded-xl text-xs transition">
+          🖼️ عرض / حفظ
+        </button>
+        ${isFullAdmin ? `<button onclick="adminDeleteClosedDay(${r.id})" title="حذف اليومية (مدير فقط)" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-extrabold px-3 py-1.5 rounded-xl text-xs transition">🗑️ حذف</button>` : ''}
+      </div>
     </div>
   `).join('') || '<p class="text-xs text-slate-400 col-span-full text-center py-4">لا توجد يوميات مغلقة مؤرشفة بعد</p>';
 
   document.getElementById('dailyTransactionsBody').innerHTML = (appState.daily || []).map(d => `
-    <tr>
+    <tr class="hover:bg-slate-50 transition">
       <td class="p-4 text-xs text-slate-500">${d.date}</td>
       <td class="p-4"><span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-sky-50 text-sky-700">${d.type}</span></td>
       <td class="p-4 font-bold text-slate-800">${d.title}</td>
       <td class="p-4 font-black text-emerald-600">${formatMoney(d.amount)}</td>
+      <td class="p-4 text-center">
+        ${isFullAdmin
+          ? `<button onclick="adminDeleteDailyTx(${d.id})" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold px-2.5 py-1 rounded-lg text-xs transition">🗑️ حذف</button>`
+          : '<span class="text-[11px] text-slate-400">للمدير فقط</span>'}
+      </td>
     </tr>
-  `).join('') || '<tr><td colspan="4" class="p-8 text-center text-slate-400">لا توجد حركات مالية مسجلة بعد</td></tr>';
+  `).join('') || '<tr><td colspan="5" class="p-8 text-center text-slate-400">لا توجد حركات مالية مسجلة بعد</td></tr>';
 }
 
 function exportToExcel() {
