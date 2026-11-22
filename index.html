@@ -222,6 +222,13 @@
 
       <!-- Cloud Status, Sound Toggle, Today Revenue & Active User -->
       <div class="flex items-center gap-1.5 sm:gap-2.5 flex-wrap">
+        <button id="btnSystemUndo" onclick="performSystemUndo()" disabled title="تراجع عن آخر تعديل أو حذف (Ctrl+Z)"
+          class="flex items-center gap-1 bg-amber-50 hover:bg-amber-100 disabled:opacity-40 disabled:cursor-not-allowed text-amber-800 border border-amber-200 px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition">
+          <span>↩️</span>
+          <span class="hidden sm:inline">تراجع (Ctrl+Z)</span>
+          <span id="undoStackBadge" class="hidden bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-full text-[10px] font-black">0</span>
+        </button>
+
         <button id="btnToggleSystemSounds" onclick="toggleSystemSounds()" title="تشغيل / كتم أصوات النظام"
           class="flex items-center gap-1 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition">
           <span id="soundStatusIcon">🔊</span>
@@ -846,6 +853,27 @@
               <span class="block text-sm font-black text-slate-800">تفعيل احتساب ساعة كاملة جديدة بعد 5 دقائق سماح</span>
               <span class="block text-xs text-slate-600">عند تفعيل هذا الخيار: أي جلسة حتى <b>65 دقيقة</b> تُحسب كـ <b>1 ساعة</b>، وبمجرد تجاوز 5 دقائق من الساعة الجديدة (مثلاً 66 دقيقة) تُحسب <b>ساعتان كاملتان</b>، وهكذا لكل ساعة.</span>
             </label>
+          </div>
+
+          <!-- Subscription Package Billing Mode Selector -->
+          <div class="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 space-y-2.5">
+            <label class="block text-sm font-black text-indigo-950">🎫 نظام احتساب خصم الساعات لمشتركي الباقات:</label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <label class="flex items-start gap-2.5 bg-white border border-indigo-200 rounded-xl p-3 cursor-pointer hover:border-indigo-400 transition">
+                <input type="radio" name="subBillingMode" id="subBillingModeMinute" value="minute" class="w-4 h-4 mt-0.5 accent-indigo-600">
+                <div>
+                  <span class="block text-xs font-black text-slate-800">⏱️ الاحتساب بالدقيقة الفعلية</span>
+                  <span class="block text-[11px] text-slate-500 mt-0.5">يُخصم من رصيد الباقة حسب الدقائق الفعلية تماماً (مثلاً: 45 دقيقة = 0.75 ساعة).</span>
+                </div>
+              </label>
+              <label class="flex items-start gap-2.5 bg-white border border-indigo-200 rounded-xl p-3 cursor-pointer hover:border-indigo-400 transition">
+                <input type="radio" name="subBillingMode" id="subBillingModeHour65" value="hour65" class="w-4 h-4 mt-0.5 accent-indigo-600">
+                <div>
+                  <span class="block text-xs font-black text-slate-800">⏳ نظام الساعة 65 دقيقة (5 دقائق سماح)</span>
+                  <span class="block text-[11px] text-slate-500 mt-0.5">حتى 65 دقيقة يُخصم <b>1 ساعة</b>، ومن 66 حتى 125 دقيقة يُخصم <b>2 ساعة</b> وهكذا.</span>
+                </div>
+              </label>
+            </div>
           </div>
 
           <div>
@@ -1518,6 +1546,7 @@ let appState = {
     hourlyRate: 5000,
     hallHourlyRate: 25000,
     roundUpAfter5Min: false,
+    subBillingMode: "minute",
     qrUrl: "",
     qrDoorScanMode: "notify"
   },
@@ -2126,9 +2155,96 @@ async function importInbox() {
   finally { inboxBusy = false; }
 }
 
-async function pushStateToCloud() {
+const UNDO_STACK_MAX = 25;
+let undoStateStack = [];
+let lastCommittedStateSnapshot = null;
+
+function syncUndoBaseline() {
+  try {
+    lastCommittedStateSnapshot = JSON.stringify(appState);
+  } catch (e) {}
+  updateUndoButtonUI();
+}
+
+function updateUndoButtonUI() {
+  const btn = document.getElementById('btnSystemUndo');
+  const badge = document.getElementById('undoStackBadge');
+  if (!btn) return;
+  const count = undoStateStack.length;
+  btn.disabled = count === 0;
+  if (badge) {
+    badge.textContent = count;
+    badge.classList.toggle('hidden', count === 0);
+  }
+}
+
+function showUndoToast(msg) {
+  let toast = document.getElementById('systemUndoToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'systemUndoToast';
+    toast.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-2.5 rounded-2xl shadow-2xl text-xs sm:text-sm font-black z-[120] border border-amber-400/50 transition-opacity duration-300';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  toast.classList.remove('hidden');
+  clearTimeout(window._undoToastTimer);
+  window._undoToastTimer = setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.classList.add('hidden'), 300);
+  }, 2600);
+}
+
+function performSystemUndo() {
+  if (!canWrite(false)) return;
+  if (undoStateStack.length === 0) {
+    showUndoToast('ℹ️ لا توجد تعديلات سابقة للتراجع عنها');
+    return;
+  }
+  const prevJson = undoStateStack.pop();
+  try {
+    appState = JSON.parse(prevJson);
+    lastCommittedStateSnapshot = prevJson;
+    updateUndoButtonUI();
+    if (typeof SoundFX !== 'undefined' && SoundFX.click) SoundFX.click();
+    pushStateToCloud(true);
+    renderAll();
+    showUndoToast('↩️ تم التراجع عن آخر تعديل/حذف بنجاح!');
+  } catch (e) {
+    console.error('Undo failed', e);
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'z' || e.key === 'Z' || e.code === 'KeyZ')) {
+    const tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.activeElement?.isContentEditable) {
+      return; // Let native text-box undo work normally
+    }
+    const lockOverlay = document.getElementById('loginLockOverlay');
+    if (lockOverlay && !lockOverlay.classList.contains('hidden')) return;
+    e.preventDefault();
+    performSystemUndo();
+  }
+});
+
+// Capture initial baseline once page finishes loading
+setTimeout(syncUndoBaseline, 1500);
+
+async function pushStateToCloud(skipUndoPush = false) {
+  const currentSnapshot = JSON.stringify(appState);
+  if (!skipUndoPush) {
+    if (lastCommittedStateSnapshot && lastCommittedStateSnapshot !== currentSnapshot) {
+      undoStateStack.push(lastCommittedStateSnapshot);
+      if (undoStateStack.length > UNDO_STACK_MAX) undoStateStack.shift();
+    }
+  }
+  lastCommittedStateSnapshot = currentSnapshot;
+  updateUndoButtonUI();
+
   lastLocalMutationAt = Date.now();
-  localStorage.setItem('qc_admin_state', JSON.stringify(appState));
+  localStorage.setItem('qc_admin_state', currentSnapshot);
   updateCloudBadge('syncing', 'جاري الحفظ...');
   try {
     const res = await fetch(await fbUrl('qc_data'), {
@@ -2665,9 +2781,20 @@ function finalizeCustomerSessionCheckout(session, mode = 'cash') {
       s.customerId === session.customerId && s.remainingHours > 0 && (!s.expiresAt || s.expiresAt > now)
     );
     if (sub) {
-      sub.remainingHours = Math.max(0, +(sub.remainingHours - hoursSpent).toFixed(2));
+      const totalMins = Math.max(1, elapsed / 60000);
+      const subMode = appState.settings.subBillingMode || 'minute';
+      let subDeductHours;
+      let subModeLabel;
+      if (subMode === 'hour65') {
+        subDeductHours = totalMins <= 65 ? 1 : (1 + Math.ceil((totalMins - 65) / 60));
+        subModeLabel = 'نظام 65 دقيقة';
+      } else {
+        subDeductHours = Math.max(0.02, +(elapsed / 3600000).toFixed(2));
+        subModeLabel = 'بالدقيقة';
+      }
+      sub.remainingHours = Math.max(0, +(sub.remainingHours - subDeductHours).toFixed(2));
       timeCost = 0;
-      note = `خصم من باقة (${sub.packageName}) بمقدار ${hoursSpent} ساعة + طلبات`;
+      note = `خصم من باقة (${sub.packageName}) بمقدار ${subDeductHours} ساعة (${subModeLabel}) + طلبات`;
     }
   }
 
@@ -4292,32 +4419,32 @@ function deleteFeedback(id) {
 }
 
 // ==================== DAILY REPORT, CLOSE DAY & SAVE IMAGE ====================
-function buildTodaySummaryObject() {
+function buildSummaryObjectForIsoDate(targetIso, closedByLabel = null) {
   const now = getTrueNow();
-  const todayIso = new Date(now).toISOString().slice(0, 10);
-  const todayTxs = (appState.daily || []).filter(d => d.isoDate === todayIso);
+  const dayTxs = (appState.daily || []).filter(d => d.isoDate === targetIso);
 
-  const studyRev = todayTxs.filter(d => d.type === 'جلسة دراسة').reduce((s, d) => s + (Number(d.amount) || 0), 0);
-  const hallRev = todayTxs.filter(d => d.type === 'حجز قاعة كاملة').reduce((s, d) => s + (Number(d.amount) || 0), 0);
-  const subRev = todayTxs.filter(d => d.type === 'اشتراك باقة').reduce((s, d) => s + (Number(d.amount) || 0), 0);
-  const posRev = todayTxs.filter(d => d.type === 'مبيعات كافيه').reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const studyRev = dayTxs.filter(d => d.type === 'جلسة دراسة').reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const hallRev = dayTxs.filter(d => d.type === 'حجز قاعة كاملة').reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const subRev = dayTxs.filter(d => d.type === 'اشتراك باقة').reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const posRev = dayTxs.filter(d => d.type === 'مبيعات كافيه').reduce((s, d) => s + (Number(d.amount) || 0), 0);
   const grossTotal = studyRev + hallRev + subRev + posRev;
 
   const allWd = appState.withdrawals || [];
-  const todayWdList = allWd.filter(w => w.isoDate === todayIso && w.source === 'today');
-  const todayGeneralWdList = allWd.filter(w => w.isoDate === todayIso && w.source === 'total');
+  const dayWdList = allWd.filter(w => w.isoDate === targetIso && w.source === 'today');
+  const dayGeneralWdList = allWd.filter(w => w.isoDate === targetIso && w.source === 'total');
 
-  const withdrawnFromToday = todayWdList.reduce((s, w) => s + (Number(w.amount) || 0), 0);
-  const withdrawnFromGeneralToday = todayGeneralWdList.reduce((s, w) => s + (Number(w.amount) || 0), 0);
+  const withdrawnFromToday = dayWdList.reduce((s, w) => s + (Number(w.amount) || 0), 0);
+  const withdrawnFromGeneralToday = dayGeneralWdList.reduce((s, w) => s + (Number(w.amount) || 0), 0);
   const netTotal = grossTotal - withdrawnFromToday;
 
+  const dateObj = new Date(targetIso + 'T12:00:00');
   return {
-    id: Math.floor(now),
-    isoDate: todayIso,
-    displayDate: new Date(now).toLocaleDateString('ar-SY'),
+    id: Math.floor(now) + Math.floor(Math.random() * 10000),
+    isoDate: targetIso,
+    displayDate: isNaN(dateObj.getTime()) ? targetIso : dateObj.toLocaleDateString('ar-SY'),
     displayTime: formatTime12(now, false),
-    closedBy: currentLoggedUser ? currentLoggedUser.label : 'المدير',
-    txCount: todayTxs.length,
+    closedBy: closedByLabel || (currentLoggedUser ? currentLoggedUser.label : 'المدير'),
+    txCount: dayTxs.length,
     studyRev,
     hallRev,
     subRev,
@@ -4325,10 +4452,15 @@ function buildTodaySummaryObject() {
     grossTotal,
     withdrawnFromToday,
     withdrawnFromGeneralToday,
-    withdrawalsCount: todayWdList.length,
-    withdrawalsItems: todayWdList.map(w => ({ category: w.category, title: w.title, amount: w.amount })),
+    withdrawalsCount: dayWdList.length,
+    withdrawalsItems: dayWdList.map(w => ({ category: w.category, title: w.title, amount: w.amount })),
     grandTotal: netTotal
   };
+}
+
+function buildTodaySummaryObject() {
+  const todayIso = new Date(getTrueNow()).toISOString().slice(0, 10);
+  return buildSummaryObjectForIsoDate(todayIso);
 }
 
 function populateReportModal(summaryObj, isArchivedView = false) {
@@ -4421,34 +4553,101 @@ async function saveDailyReportAsImage() {
   }
 }
 
+function resetLiveBoardForNewDay() {
+  // Zero out everything on the live screen (active, checked-out, deleted-by-mistake, hall-deleted, hall booking, POS cart)
+  appState.sessions = [];
+  appState.hallSession = null;
+  if (typeof posCart !== 'undefined') posCart = [];
+  const lastPos = document.getElementById('lastSoldPosCard');
+  if (lastPos) lastPos.classList.add('hidden');
+}
+
 function confirmAndArchiveDailyReport() {
   if (!canWrite(false)) return;
   const openSessions = (appState.sessions || []).filter(s => !s.checkedOut);
   if (openSessions.length > 0 || appState.hallSession) {
-    if (!confirm('تنبيه! ما زال هناك زبائن أو حجز قاعة نشط لم يتم تسجيل خروجهم. هل أنت متأكد من إغلاق اليومية على أي حال؟')) {
+    if (!confirm('تنبيه! ما زال هناك زبائن أو حجز قاعة نشط لم يتم تسجيل خروجهم.\nعند إغلاق اليومية سيتم تصفير الشاشة بالكامل. هل أنت متأكد؟')) {
       return;
     }
   }
   const summary = buildTodaySummaryObject();
   appState.closedDays = appState.closedDays || [];
-  appState.closedDays.unshift(summary);
+  // Replace existing report for same date if already closed today, or unshift new one
+  const existingIdx = appState.closedDays.findIndex(r => r.isoDate === summary.isoDate);
+  if (existingIdx !== -1) appState.closedDays[existingIdx] = summary;
+  else appState.closedDays.unshift(summary);
 
-  // Clear checked-out (red) session cards from the live board for a fresh day
-  appState.sessions = appState.sessions.filter(s => !s.checkedOut);
+  resetLiveBoardForNewDay();
 
   closeModal('dailyCloseModal');
   pushStateToCloud();
   renderAll();
-  alert('تم إغلاق اليومية وأرشفتها بنجاح في قسم "التقارير والنسخ الاحتياطي"!');
+  alert('✅ تم إغلاق اليومية وأرشفتها بنجاح وتصفير الشاشة بالكامل ليوم جديد!');
 }
+
+function checkAutoClosePreviousDay() {
+  const now = getTrueNow();
+  const todayIso = new Date(now).toISOString().slice(0, 10);
+  appState.closedDays = appState.closedDays || [];
+  const closedIsoSet = new Set(appState.closedDays.map(r => r.isoDate));
+
+  // Collect all past dates (< todayIso) that have transactions or withdrawals and were NOT closed
+  const pastDatesSet = new Set();
+  (appState.daily || []).forEach(d => {
+    if (d.isoDate && d.isoDate < todayIso && !closedIsoSet.has(d.isoDate)) {
+      pastDatesSet.add(d.isoDate);
+    }
+  });
+  (appState.withdrawals || []).forEach(w => {
+    if (w.isoDate && w.isoDate < todayIso && !closedIsoSet.has(w.isoDate)) {
+      pastDatesSet.add(w.isoDate);
+    }
+  });
+
+  let changed = false;
+  if (pastDatesSet.size > 0) {
+    const sortedPast = Array.from(pastDatesSet).sort();
+    sortedPast.forEach(pastIso => {
+      const autoRep = buildSummaryObjectForIsoDate(pastIso, 'إغلاق تلقائي (بعد 12 ليلاً)');
+      appState.closedDays.unshift(autoRep);
+      changed = true;
+    });
+    // Reset live board completely after midnight auto-close
+    resetLiveBoardForNewDay();
+  } else {
+    // Even if there were no transactions, clear any leftover cards from previous days after midnight
+    const hasOldCards = (appState.sessions || []).some(s => {
+      const refTime = s.endTime || s.startTime;
+      if (!refTime) return false;
+      return new Date(refTime).toISOString().slice(0, 10) < todayIso;
+    });
+    if (hasOldCards) {
+      resetLiveBoardForNewDay();
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    pushStateToCloud();
+    renderAll();
+  }
+}
+
+// Run midnight auto-close check every 60 seconds and shortly after startup
+setInterval(checkAutoClosePreviousDay, 60000);
+setTimeout(checkAutoClosePreviousDay, 4000);
 
 // ==================== REPORTS, EXCEL EXPORT & BACKUP ====================
 function adminDeleteClosedDay(reportId) {
   if (!canWrite(true)) return;
   const found = (appState.closedDays || []).find(r => r.id === reportId);
   if (!found) return;
-  if (!confirm(`⚠️ حذف يومية مؤرشفة (صلاحية المدير الكامل):\nهل تريد حذف تقرير يومية (${found.displayDate}) نهائياً من الأرشيف؟`)) return;
+  if (!confirm(`⚠️ حذف يومية مؤرشفة (صلاحية المدير الكامل):\nهل تريد حذف تقرير يومية (${found.displayDate}) نهائياً مع جميع حركاتها ومسحوباتها وإنقاص مبلغها من صافي الصندوق؟`)) return;
   appState.closedDays = (appState.closedDays || []).filter(r => r.id !== reportId);
+  if (found.isoDate) {
+    appState.daily = (appState.daily || []).filter(d => d.isoDate !== found.isoDate);
+    appState.withdrawals = (appState.withdrawals || []).filter(w => w.isoDate !== found.isoDate);
+  }
   SoundFX.remove();
   pushStateToCloud();
   renderAll();
@@ -4598,6 +4797,11 @@ function renderSettingsTab() {
   document.getElementById('settingHourlyRate').value = appState.settings.hourlyRate || 5000;
   document.getElementById('settingHallRate').value = appState.settings.hallHourlyRate || 25000;
   document.getElementById('settingRoundUp5Min').checked = !!appState.settings.roundUpAfter5Min;
+  const subMode = appState.settings.subBillingMode || 'minute';
+  const rMin = document.getElementById('subBillingModeMinute');
+  const rH65 = document.getElementById('subBillingModeHour65');
+  if (rMin) rMin.checked = (subMode === 'minute');
+  if (rH65) rH65.checked = (subMode === 'hour65');
 
   document.getElementById('packagesAdminList').innerHTML = appState.packages.map(p => `
     <div class="p-4 rounded-2xl border bg-slate-50 flex justify-between items-start gap-2">
@@ -4657,6 +4861,8 @@ function saveRatesSettings() {
   appState.settings.hourlyRate = Number(document.getElementById('settingHourlyRate').value) || 5000;
   appState.settings.hallHourlyRate = Number(document.getElementById('settingHallRate').value) || 25000;
   appState.settings.roundUpAfter5Min = document.getElementById('settingRoundUp5Min').checked;
+  const subModeRadio = document.querySelector('input[name="subBillingMode"]:checked');
+  appState.settings.subBillingMode = subModeRadio ? subModeRadio.value : 'minute';
   pushStateToCloud();
   renderAll();
   alert('تم حفظ إعدادات التسعير بنجاح!');
