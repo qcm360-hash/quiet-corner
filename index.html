@@ -817,10 +817,13 @@
           <div class="space-y-3 max-w-lg">
             <h3 class="text-xl font-black text-slate-800">📲 بوستر الـ QR Code لتسجيل الزبائن</h3>
             <p class="text-sm text-slate-600">تأكد أن الرابط ينتهي بـ <code class="bg-slate-100 px-1.5 py-0.5 rounded text-xs font-bold">register.html</code> ليفتح للزبون مباشرة:</p>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
               <input id="qrTargetUrlInput" type="url" oninput="updatePosterQr()" placeholder="https://qcm360-hash.github.io/quiet-corner/register.html" dir="ltr"
-                class="flex-1 px-3.5 py-2 border border-slate-300 rounded-xl text-sm">
-              <button onclick="printQrPoster()" class="bg-sky-500 hover:bg-sky-600 text-white font-bold px-4 py-2 rounded-xl text-sm shadow shrink-0">
+                class="flex-1 min-w-[200px] px-3.5 py-2 border border-slate-300 rounded-xl text-sm">
+              <button onclick="downloadQrPosterImage()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-sm shadow shrink-0 transition">
+                📥 حفظ كصورة
+              </button>
+              <button onclick="printQrPoster()" class="bg-sky-500 hover:bg-sky-600 text-white font-bold px-4 py-2 rounded-xl text-sm shadow shrink-0 transition">
                 🖨️ طباعة البوستر
               </button>
             </div>
@@ -1418,9 +1421,10 @@
         </div>
         <p class="text-[10px] text-slate-400">أبرز هذه البطاقة عند الدخول والخروج</p>
       </div>
-      <div class="flex gap-2 justify-center">
+      <div class="flex flex-wrap gap-2 justify-center">
         <button onclick="closeModal('barcodeCardModal')" class="px-4 py-2 rounded-xl text-sm font-bold text-slate-500 bg-slate-100">إغلاق</button>
-        <button onclick="window.print()" class="bg-sky-500 text-white font-bold px-5 py-2 rounded-xl text-sm shadow">🖨️ طباعة البطاقة</button>
+        <button onclick="downloadMemberCardImage()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-sm shadow">📥 حفظ كصورة</button>
+        <button onclick="window.print()" class="bg-sky-500 hover:bg-sky-600 text-white font-bold px-4 py-2 rounded-xl text-sm shadow">🖨️ طباعة</button>
       </div>
     </div>
   </div>
@@ -2234,31 +2238,8 @@ async function importInbox() {
     const inbox = await r.json();
     if (!inbox) return;
     const del = {}; let changed = false;
-    Object.entries(inbox.reg || {}).forEach(([id, x]) => {
-      del['inbox/reg/' + id] = null;
-      if (!x || !x.name || !x.code) return;
-      const phone = String(x.phone || '').replace(/\s+/g, '');
-      if ((appState.customers || []).some(c => String(c.phone || '').replace(/\s+/g, '') === phone)) return;
-      let code = String(x.code);
-      if ((appState.customers || []).some(c => String(c.code) === code)) {
-        del['members/' + pubCodeKey(code)] = null;
-        code = generateSimpleNumericCode(appState.customers);
-      }
-      const newCustObj = { id: Number(x.id) || Date.now(), name: stripTags(x.name, 60), phone, job: stripTags(x.job, 80), code, accumulatedHours: 0, totalLifetimeHours: 0, freeHours: 0 };
-      appState.customers.push(newCustObj);
-      changed = true;
-      showCheckInPrompt(newCustObj, 'reg');
-    });
-    Object.entries(inbox.fb || {}).forEach(([id, x]) => {
-      del['inbox/fb/' + id] = null;
-      if (!x) return;
-      appState.feedbacks = appState.feedbacks || [];
-      appState.feedbacks.unshift({ id: Number(x.id) || Date.now(), customerName: stripTags(x.customerName, 100) || 'زائر', rating: Math.min(5, Math.max(1, Number(x.rating) || 5)), message: stripTags(x.message, 500), date: stripTags(x.date, 40) });
-      changed = true;
-    });
     const qrMode = (appState.settings && appState.settings.qrDoorScanMode) || 'notify';
-    Object.entries(inbox.checkin || {}).forEach(([id, x]) => {
-      del['inbox/checkin/' + id] = null;
+    const processQrCheckinItem = (x) => {
       if (qrMode === 'off' || !x || !x.code) return;
       const cleanCode = String(x.code).trim().toUpperCase().replace(/^QC-/, '');
       const cust = (appState.customers || []).find(c => String(c.code || '').trim().toUpperCase().replace(/^QC-/, '') === cleanCode);
@@ -2281,6 +2262,38 @@ async function importInbox() {
         SoundFX.scanCheckIn();
         showScanToast(`دخول ذاتي via QR: ${cust.name}`, `كود #${cust.code} • تم تسجيل الدخول من بوستر الباب`, 'checkin');
       }
+    };
+
+    Object.entries(inbox.reg || {}).forEach(([id, x]) => {
+      del['inbox/reg/' + id] = null;
+      if (!x || !x.code) return;
+      if (x.type === 'checkin') {
+        processQrCheckinItem(x);
+        return;
+      }
+      if (!x.name) return;
+      const phone = String(x.phone || '').replace(/\s+/g, '');
+      if ((appState.customers || []).some(c => String(c.phone || '').replace(/\s+/g, '') === phone)) return;
+      let code = String(x.code);
+      if ((appState.customers || []).some(c => String(c.code) === code)) {
+        del['members/' + pubCodeKey(code)] = null;
+        code = generateSimpleNumericCode(appState.customers);
+      }
+      const newCustObj = { id: Number(x.id) || Date.now(), name: stripTags(x.name, 60), phone, job: stripTags(x.job, 80), code, accumulatedHours: 0, totalLifetimeHours: 0, freeHours: 0 };
+      appState.customers.push(newCustObj);
+      changed = true;
+      showCheckInPrompt(newCustObj, 'reg');
+    });
+    Object.entries(inbox.fb || {}).forEach(([id, x]) => {
+      del['inbox/fb/' + id] = null;
+      if (!x) return;
+      appState.feedbacks = appState.feedbacks || [];
+      appState.feedbacks.unshift({ id: Number(x.id) || Date.now(), customerName: stripTags(x.customerName, 100) || 'زائر', rating: Math.min(5, Math.max(1, Number(x.rating) || 5)), message: stripTags(x.message, 500), date: stripTags(x.date, 40) });
+      changed = true;
+    });
+    Object.entries(inbox.checkin || {}).forEach(([id, x]) => {
+      del['inbox/checkin/' + id] = null;
+      processQrCheckinItem(x);
     });
     if (!Object.keys(del).length) return;
     let ok = true;
@@ -4988,6 +5001,38 @@ function printQrPoster() {
   const win = window.open('', '', 'width=500,height=650');
   win.document.write(`<html dir="rtl"><head><title>QR Code</title><script src="https://cdn.tailwindcss.com"><\/script></head><body class="flex items-center justify-center min-h-screen">${content}</body></html>`);
   setTimeout(() => { win.print(); win.close(); }, 500);
+}
+
+async function downloadQrPosterImage() {
+  if (canWrite(false)) pushStateToCloud();
+  const el = document.getElementById('printableQrPoster');
+  if (!el) return;
+  try {
+    const canvas = await html2canvas(el, { scale: 3, backgroundColor: '#ffffff', useCORS: true });
+    const a = document.createElement('a');
+    a.download = 'QuietCorner_QR_Poster.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+    SoundFX.success();
+  } catch (e) {
+    alert('تعذر حفظ الصورة، تأكد من تحميل الصفحة بشكل كامل.');
+  }
+}
+
+async function downloadMemberCardImage() {
+  const el = document.getElementById('printableMemberCard');
+  if (!el) return;
+  try {
+    const canvas = await html2canvas(el, { scale: 3, backgroundColor: '#ffffff', useCORS: true });
+    const codeTxt = (document.getElementById('cardCustCodeBadge')?.textContent || 'member').replace(/[^0-9a-zA-Z_-]/g, '');
+    const a = document.createElement('a');
+    a.download = `QuietCorner_Card_${codeTxt}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+    SoundFX.success();
+  } catch (e) {
+    alert('تعذر حفظ البطاقة كصورة.');
+  }
 }
 
 // ==================== FEEDBACK VIEW ====================
