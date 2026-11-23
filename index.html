@@ -4679,7 +4679,7 @@ function renderQuickPos() {
   // Render Quick POS Sales Table & Today's Total
   const todayIso = new Date(getTrueNow()).toISOString().slice(0, 10);
   const allCafeSales = (appState.daily || []).filter(d => d.type === 'مبيعات كافيه');
-  const todayCafeSales = allCafeSales.filter(d => d.isoDate === todayIso);
+  const todayCafeSales = allCafeSales.filter(d => isOpenTodayItem(d, todayIso));
   const todayCafeSum = todayCafeSales.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
 
   const badgeEl = document.getElementById('posTodayRevenueBadge');
@@ -5000,29 +5000,76 @@ function updatePosterQr() {
 
 function printQrPoster() {
   if (canWrite(false)) pushStateToCloud();
-  const content = document.getElementById('printableQrPoster').outerHTML;
+  const posterEl = document.getElementById('printableQrPoster');
+  if (!posterEl) return;
+  const clone = posterEl.cloneNode(true);
+  const origCanvas = document.querySelector('#posterQrBox canvas');
+  const cloneQrBox = clone.querySelector('#posterQrBox');
+  if (origCanvas && cloneQrBox) {
+    cloneQrBox.innerHTML = `<img src="${origCanvas.toDataURL('image/png')}" style="width:150px;height:150px;display:block;margin:auto;">`;
+  }
   const win = window.open('', '', 'width=500,height=650');
-  win.document.write(`<html dir="rtl"><head><title>QR Code</title><script src="https://cdn.tailwindcss.com"><\/script></head><body class="flex items-center justify-center min-h-screen">${content}</body></html>`);
+  win.document.write(`<html dir="rtl"><head><title>QR Code</title><script src="https://cdn.tailwindcss.com"><\/script></head><body class="flex items-center justify-center min-h-screen">${clone.outerHTML}</body></html>`);
   setTimeout(() => { win.print(); win.close(); }, 500);
 }
 
 async function captureElementWithQrFix(el, qrBoxId) {
+  const scale = 3;
   const qrBox = document.getElementById(qrBoxId);
   const qrCanvas = qrBox ? qrBox.querySelector('canvas') : null;
   const qrImg = qrBox ? qrBox.querySelector('img') : null;
-  const prevCanvasDisplay = qrCanvas ? qrCanvas.style.display : null;
-  const prevImgDisplay = qrImg ? qrImg.style.display : null;
-  try {
-    // Force qrcodejs's native <canvas> visible during html2canvas capture so it NEVER exports blank
-    if (qrCanvas) {
-      qrCanvas.style.display = 'block';
-      if (qrImg) qrImg.style.display = 'none';
+
+  const outCanvas = await html2canvas(el, {
+    scale,
+    backgroundColor: '#ffffff',
+    useCORS: true,
+    allowTaint: true
+  });
+
+  // Composite the crisp QR bitmap directly onto the captured canvas so it NEVER exports blank
+  if (qrBox && (qrCanvas || qrImg)) {
+    const elRect = el.getBoundingClientRect();
+    let tRect = null;
+    if (qrImg && qrImg.style.display !== 'none') {
+      const r = qrImg.getBoundingClientRect();
+      if (r.width > 10 && r.height > 10) tRect = r;
     }
-    return await html2canvas(el, { scale: 3, backgroundColor: '#ffffff', useCORS: true });
-  } finally {
-    if (qrCanvas) qrCanvas.style.display = prevCanvasDisplay;
-    if (qrImg) qrImg.style.display = prevImgDisplay;
+    if (!tRect && qrCanvas) {
+      const r = qrCanvas.getBoundingClientRect();
+      if (r.width > 10 && r.height > 10) tRect = r;
+    }
+    if (!tRect) {
+      const boxRect = qrBox.getBoundingClientRect();
+      const cs = window.getComputedStyle(qrBox);
+      const padL = parseFloat(cs.paddingLeft) || 0;
+      const padT = parseFloat(cs.paddingTop) || 0;
+      const padR = parseFloat(cs.paddingRight) || 0;
+      const padB = parseFloat(cs.paddingBottom) || 0;
+      tRect = {
+        left: boxRect.left + padL,
+        top: boxRect.top + padT,
+        width: Math.max(0, boxRect.width - padL - padR),
+        height: Math.max(0, boxRect.height - padT - padB)
+      };
+    }
+
+    if (tRect && tRect.width > 0 && tRect.height > 0) {
+      const ctx = outCanvas.getContext('2d');
+      const dx = (tRect.left - elRect.left) * scale;
+      const dy = (tRect.top - elRect.top) * scale;
+      const dw = tRect.width * scale;
+      const dh = tRect.height * scale;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(dx, dy, dw, dh);
+      ctx.imageSmoothingEnabled = false;
+      if (qrCanvas && qrCanvas.width > 0 && qrCanvas.height > 0) {
+        ctx.drawImage(qrCanvas, dx, dy, dw, dh);
+      } else if (qrImg && qrImg.complete && qrImg.naturalWidth > 0) {
+        ctx.drawImage(qrImg, dx, dy, dw, dh);
+      }
+    }
   }
+  return outCanvas;
 }
 
 async function downloadQrPosterImage() {
@@ -5110,9 +5157,23 @@ function deleteFeedback(id) {
 }
 
 // ==================== DAILY REPORT, CLOSE DAY & SAVE IMAGE ====================
-function buildSummaryObjectForIsoDate(targetIso, closedByLabel = null) {
+function getLastCloseTsForDate(targetIso) {
+  const closedForDate = (appState.closedDays || []).filter(r => r.isoDate === targetIso);
+  if (closedForDate.length === 0) return 0;
+  return Math.max(...closedForDate.map(r => Number(r.closedAt || r.id) || 0));
+}
+
+function isOpenTodayItem(item, targetIso) {
+  if (!item || item.isoDate !== targetIso) return false;
+  if (item.dayClosed) return false;
+  const lastCloseTs = getLastCloseTsForDate(targetIso);
+  if (lastCloseTs > 0 && Number(item.id) > 0 && Number(item.id) <= lastCloseTs) return false;
+  return true;
+}
+
+function buildSummaryObjectForIsoDate(targetIso, closedByLabel = null, onlyOpenItems = false) {
   const now = getTrueNow();
-  const dayTxs = (appState.daily || []).filter(d => d.isoDate === targetIso);
+  const dayTxs = (appState.daily || []).filter(d => onlyOpenItems ? isOpenTodayItem(d, targetIso) : (d.isoDate === targetIso));
 
   const studyRev = dayTxs.filter(d => d.type === 'جلسة دراسة').reduce((s, d) => s + (Number(d.amount) || 0), 0);
   const hallRev = dayTxs.filter(d => d.type === 'حجز قاعة كاملة').reduce((s, d) => s + (Number(d.amount) || 0), 0);
@@ -5122,16 +5183,18 @@ function buildSummaryObjectForIsoDate(targetIso, closedByLabel = null) {
   const grossTotal = studyRev + hallRev + subRev + posRev + debtRev;
 
   const allWd = appState.withdrawals || [];
-  const dayWdList = allWd.filter(w => w.isoDate === targetIso && w.source === 'today');
-  const dayGeneralWdList = allWd.filter(w => w.isoDate === targetIso && w.source === 'total');
+  const dayWdList = allWd.filter(w => (onlyOpenItems ? isOpenTodayItem(w, targetIso) : (w.isoDate === targetIso)) && w.source === 'today');
+  const dayGeneralWdList = allWd.filter(w => (onlyOpenItems ? isOpenTodayItem(w, targetIso) : (w.isoDate === targetIso)) && w.source === 'total');
 
   const withdrawnFromToday = dayWdList.reduce((s, w) => s + (Number(w.amount) || 0), 0);
   const withdrawnFromGeneralToday = dayGeneralWdList.reduce((s, w) => s + (Number(w.amount) || 0), 0);
   const netTotal = grossTotal - withdrawnFromToday;
 
   const dateObj = new Date(targetIso + 'T12:00:00');
+  const closedTs = Math.floor(now);
   return {
-    id: Math.floor(now) + Math.floor(Math.random() * 10000),
+    id: closedTs + Math.floor(Math.random() * 10000),
+    closedAt: closedTs,
     isoDate: targetIso,
     displayDate: isNaN(dateObj.getTime()) ? targetIso : dateObj.toLocaleDateString('ar-SY'),
     displayTime: formatTime12(now, false),
@@ -5152,7 +5215,7 @@ function buildSummaryObjectForIsoDate(targetIso, closedByLabel = null) {
 
 function buildTodaySummaryObject() {
   const todayIso = new Date(getTrueNow()).toISOString().slice(0, 10);
-  return buildSummaryObjectForIsoDate(todayIso);
+  return buildSummaryObjectForIsoDate(todayIso, null, true);
 }
 
 function populateReportModal(summaryObj, isArchivedView = false) {
@@ -5263,18 +5326,30 @@ function confirmAndArchiveDailyReport() {
     }
   }
   const summary = buildTodaySummaryObject();
+  const todayIso = summary.isoDate;
   appState.closedDays = appState.closedDays || [];
-  // Replace existing report for same date if already closed today, or unshift new one
-  const existingIdx = appState.closedDays.findIndex(r => r.isoDate === summary.isoDate);
-  if (existingIdx !== -1) appState.closedDays[existingIdx] = summary;
-  else appState.closedDays.unshift(summary);
+  appState.closedDays.unshift(summary);
+
+  // Mark all open transactions & withdrawals of today as closed so today's revenue resets to 0
+  (appState.daily || []).forEach(d => {
+    if (isOpenTodayItem(d, todayIso)) {
+      d.dayClosed = true;
+      d.closedReportId = summary.id;
+    }
+  });
+  (appState.withdrawals || []).forEach(w => {
+    if (isOpenTodayItem(w, todayIso)) {
+      w.dayClosed = true;
+      w.closedReportId = summary.id;
+    }
+  });
 
   resetLiveBoardForNewDay();
 
   closeModal('dailyCloseModal');
   pushStateToCloud();
   renderAll();
-  alert('✅ تم إغلاق اليومية وأرشفتها بنجاح وتصفير الشاشة بالكامل ليوم جديد!');
+  alert('✅ تم إغلاق اليومية وأرشفتها بنجاح وتصفير دخل اليوم والشاشة بالكامل!');
 }
 
 function checkAutoClosePreviousDay() {
@@ -5337,8 +5412,14 @@ function adminDeleteClosedDay(reportId) {
   if (!confirm(`⚠️ حذف يومية مؤرشفة (صلاحية المدير الكامل):\nهل تريد حذف تقرير يومية (${found.displayDate}) نهائياً مع جميع حركاتها ومسحوباتها وإنقاص مبلغها من صافي الصندوق؟`)) return;
   appState.closedDays = (appState.closedDays || []).filter(r => r.id !== reportId);
   if (found.isoDate) {
-    appState.daily = (appState.daily || []).filter(d => d.isoDate !== found.isoDate);
-    appState.withdrawals = (appState.withdrawals || []).filter(w => w.isoDate !== found.isoDate);
+    const hasScopedItems = (appState.daily || []).some(d => d.closedReportId === reportId) || (appState.withdrawals || []).some(w => w.closedReportId === reportId);
+    if (hasScopedItems) {
+      appState.daily = (appState.daily || []).filter(d => d.closedReportId !== reportId);
+      appState.withdrawals = (appState.withdrawals || []).filter(w => w.closedReportId !== reportId);
+    } else {
+      appState.daily = (appState.daily || []).filter(d => d.isoDate !== found.isoDate);
+      appState.withdrawals = (appState.withdrawals || []).filter(w => w.isoDate !== found.isoDate);
+    }
   }
   SoundFX.remove();
   pushStateToCloud();
@@ -5774,7 +5855,7 @@ function renderLiveSessions() {
   const now = getTrueNow();
   const todayIso = new Date(now).toISOString().slice(0, 10);
   const todayRevenue = (appState.daily || [])
-    .filter(d => d.isoDate === todayIso)
+    .filter(d => isOpenTodayItem(d, todayIso))
     .reduce((s, d) => s + (Number(d.amount) || 0), 0);
 
   const activeSessions = appState.sessions.filter(s => !s.checkedOut);
@@ -6099,7 +6180,7 @@ function renderCashboxTab() {
 
   // Gross Revenues
   const grossAll = allDaily.reduce((s, d) => s + (Number(d.amount) || 0), 0);
-  const grossToday = allDaily.filter(d => d.isoDate === todayIso).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const grossToday = allDaily.filter(d => isOpenTodayItem(d, todayIso)).reduce((s, d) => s + (Number(d.amount) || 0), 0);
   const grossMonth = allDaily.filter(d => String(d.isoDate || '').startsWith(monthKey)).reduce((s, d) => s + (Number(d.amount) || 0), 0);
 
   // Withdrawals
@@ -6107,7 +6188,7 @@ function renderCashboxTab() {
   const wdAllFromToday = allWd.filter(w => w.source === 'today').reduce((s, w) => s + (Number(w.amount) || 0), 0);
   const wdAllFromGeneral = allWd.filter(w => w.source === 'total').reduce((s, w) => s + (Number(w.amount) || 0), 0);
 
-  const wdTodayFromToday = allWd.filter(w => w.isoDate === todayIso && w.source === 'today').reduce((s, w) => s + (Number(w.amount) || 0), 0);
+  const wdTodayFromToday = allWd.filter(w => isOpenTodayItem(w, todayIso) && w.source === 'today').reduce((s, w) => s + (Number(w.amount) || 0), 0);
   const wdMonthTotal = allWd.filter(w => (w.monthKey || String(w.isoDate || '').slice(0, 7)) === monthKey).reduce((s, w) => s + (Number(w.amount) || 0), 0);
 
   const netAll = grossAll - wdAllTotal;
