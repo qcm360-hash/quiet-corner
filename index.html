@@ -512,7 +512,16 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div id="posProductsGrid" class="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3"></div>
+          <div class="lg:col-span-2 space-y-3">
+            <div class="relative">
+              <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+              <input id="posProductsSearchInput" type="text" oninput="renderQuickPos()" placeholder="ابحث عن منتج أو مشروب أو خدمة..."
+                class="w-full pr-10 pl-10 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+              <button type="button" onclick="const el=document.getElementById('posProductsSearchInput'); if(el){el.value=''; renderQuickPos(); el.focus();}"
+                title="مسح البحث" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 font-bold text-sm">✕</button>
+            </div>
+            <div id="posProductsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3"></div>
+          </div>
           <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
             <div>
               <div class="flex items-center justify-between border-b pb-3 mb-3">
@@ -768,6 +777,39 @@
             </button>
             <div id="socialLinksAdminList" class="space-y-2 pt-2 border-t"></div>
           </div>
+        </div>
+
+        <!-- Offer Posters Gallery Control (Visible via Button on Customer Page) -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="font-black text-slate-800 text-base flex items-center gap-2"><span>🖼️</span> بوسترات العروض والفعاليات (تظهر بزر خاص في صفحة الزبون)</h3>
+              <p class="text-xs text-slate-500 mt-0.5">ارفع صورة بوستر من جهازك (يتم ضغطها تلقائياً لسرعة التحميل) أو الصق رابط صورة — سيظهر للزبون زر "🔥 العروض والبوسترات"</p>
+            </div>
+            <span id="postersCountAdminBadge" class="bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1 rounded-full text-xs font-black">0 بوستر</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+            <div>
+              <label class="block text-[11px] font-extrabold text-slate-600 mb-1">عنوان البوستر / العرض (اختياري)</label>
+              <input id="posterTitleInput" type="text" placeholder="مثلاً: عرض الجمعة البيضاء 🔥" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm font-bold">
+            </div>
+            <div>
+              <label class="block text-[11px] font-extrabold text-slate-600 mb-1">اختر صورة من جهازك (PNG / JPG)</label>
+              <input id="posterFileInput" type="file" accept="image/*" class="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold file:ml-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:bg-sky-500 file:text-white file:font-bold cursor-pointer">
+            </div>
+            <div>
+              <label class="block text-[11px] font-extrabold text-slate-600 mb-1">أو رابط صورة مباشر (اختياري)</label>
+              <input id="posterUrlInput" type="url" dir="ltr" placeholder="https://.../poster.jpg" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm text-left">
+            </div>
+            <div>
+              <button id="btnAddPosterSubmit" onclick="addOfferPoster()" class="w-full bg-gradient-to-l from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black py-2 px-4 rounded-xl text-sm shadow transition">
+                ➕ نشر البوستر للزبائن
+              </button>
+            </div>
+          </div>
+
+          <div id="postersAdminGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t"></div>
         </div>
 
         <!-- QR Poster Generator -->
@@ -1508,7 +1550,10 @@
       <div class="flex items-start gap-3">
         <span id="checkInPromptIcon" class="text-2xl shrink-0">🔔</span>
         <div class="flex-1 min-w-0">
-          <p id="checkInPromptTitle" class="text-sm font-black text-white leading-snug">---</p>
+          <div class="flex items-center gap-2 flex-wrap">
+            <p id="checkInPromptTitle" class="text-sm font-black text-white leading-snug">---</p>
+            <span id="checkInPromptQueueBadge" class="hidden text-[10px] font-black bg-sky-500/30 text-sky-200 border border-sky-400/50 px-2 py-0.5 rounded-full"></span>
+          </div>
           <p id="checkInPromptSub" class="text-xs text-sky-200 font-bold mt-0.5">---</p>
         </div>
         <button onclick="dismissCheckInPrompt()" class="text-slate-400 hover:text-white font-bold text-lg leading-none">&times;</button>
@@ -1577,8 +1622,10 @@
         <input id="autoFullScanToggle" type="checkbox" onchange="saveAutoScanPref(this.checked)" class="w-4 h-4 accent-amber-600 shrink-0">
       </label>
 
-      <!-- Live Video Container -->
-      <div id="webcamReaderContainer" class="w-full rounded-2xl overflow-hidden border-2 border-sky-400 bg-slate-950 min-h-[190px]"></div>
+      <!-- Live Video Container (Viewport keeps full inner layout dimensions via CSS scale when minimized so QR decoding never breaks) -->
+      <div id="webcamReaderViewport" dir="ltr" class="w-full rounded-2xl overflow-hidden border-2 border-sky-400 bg-slate-950">
+        <div id="webcamReaderContainer" class="w-full min-h-[190px] bg-slate-950"></div>
+      </div>
 
       <!-- Live Feedback Strip -->
       <div id="webcamScanFeedback" class="text-[11px] font-extrabold text-sky-700 bg-sky-50 border border-sky-200 py-1.5 px-3 rounded-xl text-center">
@@ -1627,6 +1674,7 @@ let appState = {
   socialLinks: [
     { id: 1, platform: "instagram", label: "إنستغرام المركز", url: "https://instagram.com" }
   ],
+  posters: [],
   feedbacks: [],
   settings: {
     hourlyRate: 5000,
@@ -2130,9 +2178,10 @@ async function mirrorPublic(force) {
       } : { active: false },
       announcements: s.announcements || [],
       socialLinks: s.socialLinks || [],
+      posters: (s.posters || []).filter(p => p.active !== false),
       loyaltyOffers: s.loyaltyOffers || [],
       milestone: s.milestone || {},
-      settings: { hourlyRate: (s.settings && s.settings.hourlyRate) || 5000, roundUpAfter5Min: !!(s.settings && s.settings.roundUpAfter5Min) }
+      settings: { hourlyRate: (s.settings && s.settings.hourlyRate) || 5000, roundUpAfter5Min: !!(s.settings && s.settings.roundUpAfter5Min), qrDoorScanMode: (s.settings && s.settings.qrDoorScanMode) || 'notify' }
     };
     (s.customers || []).forEach(c => {
       const ck = pubCodeKey(c.code);
@@ -2407,6 +2456,7 @@ async function pullStateFromCloud(initial = false) {
             wifi: { ...appState.wifi, ...(cloudData.wifi || {}) },
             announcements: cloudData.announcements || [],
             socialLinks: cloudData.socialLinks || [],
+            posters: cloudData.posters || [],
             feedbacks: cloudData.feedbacks || [],
             packages: cloudData.packages || appState.packages,
             products: cloudData.products || appState.products,
@@ -2792,17 +2842,35 @@ function getSessionBillingInfo(session, nowTs = getTrueNow()) {
 }
 
 // ==================== INTERACTIVE CHECK-IN PROMPT ====================
+let pendingCheckInQueue = [];
 let pendingCheckInCustomerId = null;
 
-function showCheckInPrompt(cust, reason = 'reg') {
-  if (!cust) return;
-  const alreadyActive = (appState.sessions || []).some(s => s.customerId === cust.id && !s.checkedOut);
-  if (alreadyActive) return;
+function renderNextCheckInPrompt(playSound = false) {
+  // Drop any queued items whose customer is already active or missing
+  pendingCheckInQueue = pendingCheckInQueue.filter(item => {
+    const c = (appState.customers || []).find(x => x.id === item.custId);
+    if (!c) return false;
+    const isActive = (appState.sessions || []).some(s => s.customerId === c.id && !s.checkedOut);
+    return !isActive;
+  });
+
+  const banner = document.getElementById('checkInPromptBanner');
+  if (pendingCheckInQueue.length === 0) {
+    pendingCheckInCustomerId = null;
+    if (banner) banner.classList.add('hidden');
+    return;
+  }
+
+  const head = pendingCheckInQueue[0];
+  const cust = (appState.customers || []).find(x => x.id === head.custId);
   pendingCheckInCustomerId = cust.id;
+
   const iconEl = document.getElementById('checkInPromptIcon');
   const titleEl = document.getElementById('checkInPromptTitle');
   const subEl = document.getElementById('checkInPromptSub');
-  if (reason === 'reg') {
+  const badgeEl = document.getElementById('checkInPromptQueueBadge');
+
+  if (head.reason === 'reg') {
     if (iconEl) iconEl.textContent = '🆕';
     if (titleEl) titleEl.textContent = `زبون جديد سجل بياناته الآن: ${cust.name}`;
     if (subEl) subEl.textContent = `كود #${cust.code} • هل تريد تسجيل دخوله وبدء جلسته الآن؟`;
@@ -2811,30 +2879,58 @@ function showCheckInPrompt(cust, reason = 'reg') {
     if (titleEl) titleEl.textContent = `زبون مسجل مسح بوستر الـ QR: ${cust.name}`;
     if (subEl) subEl.textContent = `كود #${cust.code} • هل تريد تسجيل دخوله وبدء جلسته الآن؟`;
   }
-  const banner = document.getElementById('checkInPromptBanner');
+
+  if (badgeEl) {
+    if (pendingCheckInQueue.length > 1) {
+      badgeEl.textContent = `+${pendingCheckInQueue.length - 1} بالانتظار`;
+      badgeEl.classList.remove('hidden');
+    } else {
+      badgeEl.classList.add('hidden');
+    }
+  }
+
   if (banner) banner.classList.remove('hidden');
-  SoundFX.scanCheckIn();
+  if (playSound) SoundFX.scanCheckIn();
+}
+
+function showCheckInPrompt(cust, reason = 'reg') {
+  if (!cust) return;
+  const alreadyActive = (appState.sessions || []).some(s => s.customerId === cust.id && !s.checkedOut);
+  if (alreadyActive) return;
+  const alreadyQueued = pendingCheckInQueue.some(item => item.custId === cust.id);
+  if (!alreadyQueued) {
+    pendingCheckInQueue.push({ custId: cust.id, reason });
+  }
+  renderNextCheckInPrompt(true);
 }
 
 function dismissCheckInPrompt() {
-  pendingCheckInCustomerId = null;
-  const banner = document.getElementById('checkInPromptBanner');
-  if (banner) banner.classList.add('hidden');
+  if (pendingCheckInQueue.length > 0) {
+    pendingCheckInQueue.shift();
+  }
+  renderNextCheckInPrompt(false);
 }
 
 function confirmPromptCheckIn() {
   if (!pendingCheckInCustomerId) return;
   const cust = (appState.customers || []).find(c => c.id === pendingCheckInCustomerId);
-  dismissCheckInPrompt();
-  if (!cust) return;
+  if (pendingCheckInQueue.length > 0) {
+    pendingCheckInQueue.shift();
+  }
+  if (!cust) {
+    renderNextCheckInPrompt(false);
+    return;
+  }
   const alreadyActive = (appState.sessions || []).some(s => s.customerId === cust.id && !s.checkedOut);
   if (alreadyActive) {
     showScanToast(`الزبون داخل الجلسة مسبقاً: ${cust.name}`, `كود #${cust.code}`, 'info');
+    renderNextCheckInPrompt(false);
     return;
   }
   startSessionForCustomer(cust);
   SoundFX.success();
   showScanToast(`✅ تم تسجيل دخول: ${cust.name}`, `كود #${cust.code} • بدأ احتساب الجلسة`, 'checkin');
+  renderNextCheckInPrompt(false);
 }
 
 function showScanToast(title, sub, variant = 'info') {
@@ -2872,20 +2968,31 @@ function saveAutoScanPref(enabled) {
 function toggleMinimizeQrDock() {
   isQrDockMinimized = !isQrDockMinimized;
   const body = document.getElementById('webcamDockBody');
+  const viewport = document.getElementById('webcamReaderViewport');
   const reader = document.getElementById('webcamReaderContainer');
   const btn = document.getElementById('btnMinimizeQrDock');
   const dock = document.getElementById('webcamScannerDock');
   if (isQrDockMinimized) {
-    // Hide only the extra controls, keep the live <video> visible as a tiny compact PIP so Chrome/Edge NEVER pauses/occludes it!
+    // Measure current full layout size BEFORE shrinking dock so html5-qrcode keeps exact clientWidth/clientHeight & qrbox math!
+    const fullW = (reader && reader.offsetWidth > 180) ? reader.offsetWidth : 352;
+    const fullH = (reader && reader.offsetHeight > 140) ? reader.offsetHeight : Math.round(fullW * 0.75);
+    const pipW = 128;
+    const scale = pipW / fullW;
+    const pipH = Math.max(72, Math.round(fullH * scale));
+
     Array.from(body.children).forEach(ch => {
-      if (ch.id !== 'webcamReaderContainer') ch.classList.add('hidden');
+      if (ch.id !== 'webcamReaderViewport') ch.classList.add('hidden');
     });
     body.style.padding = '6px';
-    if (reader) {
+    if (viewport && reader) {
+      viewport.style.width = pipW + 'px';
+      viewport.style.height = pipH + 'px';
+      viewport.style.margin = '0 auto';
+      reader.style.width = fullW + 'px';
+      reader.style.height = fullH + 'px';
       reader.style.minHeight = '0';
-      reader.style.height = '64px';
-      reader.style.width = '96px';
-      reader.style.margin = '0 auto';
+      reader.style.transformOrigin = 'top left';
+      reader.style.transform = `scale(${scale})`;
     }
     dock.classList.remove('w-auto', 'sm:w-96', 'right-3');
     dock.classList.add('w-60');
@@ -2895,11 +3002,15 @@ function toggleMinimizeQrDock() {
       ch.classList.remove('hidden');
     });
     body.style.padding = '';
-    if (reader) {
-      reader.style.minHeight = '';
-      reader.style.height = '';
+    if (viewport && reader) {
+      viewport.style.width = '';
+      viewport.style.height = '';
+      viewport.style.margin = '';
       reader.style.width = '';
-      reader.style.margin = '';
+      reader.style.height = '';
+      reader.style.minHeight = '';
+      reader.style.transformOrigin = '';
+      reader.style.transform = '';
     }
     dock.classList.add('w-auto', 'sm:w-96', 'right-3');
     dock.classList.remove('w-60');
@@ -4524,14 +4635,18 @@ function renderLoyalty() {
 let lastQuickPosSale = null;
 
 function renderQuickPos() {
-  document.getElementById('posProductsGrid').innerHTML = appState.products.map(p => `
+  const posQ = (document.getElementById('posProductsSearchInput')?.value || '').trim().toLowerCase();
+  const filteredProds = (appState.products || []).filter(p =>
+    !posQ || (p.name || '').toLowerCase().includes(posQ) || String(p.price || '').includes(posQ)
+  );
+  document.getElementById('posProductsGrid').innerHTML = filteredProds.map(p => `
     <button onclick="addToPosCart(${p.id})" class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 hover:border-sky-400 shadow-sm text-center space-y-1 transition card-hover">
       <div class="text-2xl sm:text-3xl">${p.icon}</div>
       <div class="font-extrabold text-slate-800 text-xs sm:text-sm">${p.name}</div>
       <div class="text-xs font-black text-sky-600">${p.price.toLocaleString()} ل.س</div>
       ${(p.stock !== undefined && p.stock !== null && p.stock !== '') ? `<div class="text-[10px] font-black ${Number(p.stock) <= 5 ? 'text-rose-600' : 'text-slate-400'}">📦 المتبقي: ${p.stock}</div>` : ''}
     </button>
-  `).join('');
+  `).join('') || '<div class="col-span-full bg-white p-8 rounded-2xl border border-dashed border-slate-300 text-center text-xs font-bold text-slate-400">🔍 لا يوجد منتج مطابق للبحث</div>';
 
   const total = posCart.reduce((s, item) => s + item.price, 0);
   document.getElementById('posCartTotal').textContent = formatMoney(total);
@@ -4682,6 +4797,92 @@ function deleteSocialLink(id) {
   renderCustomerPageControls();
 }
 
+function compressPosterImageFile(file, maxDim = 960, quality = 0.78) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('read_failed'));
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('img_failed'));
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w >= h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+          else { w = Math.round((w * maxDim) / h); h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function addOfferPoster() {
+  if (!canWrite(false)) return;
+  const title = (document.getElementById('posterTitleInput')?.value || '').trim();
+  const fileEl = document.getElementById('posterFileInput');
+  const urlVal = (document.getElementById('posterUrlInput')?.value || '').trim();
+  const file = fileEl && fileEl.files && fileEl.files[0];
+
+  if (!file && !urlVal) {
+    return alert('يرجى اختيار صورة بوستر من جهازك أو لصق رابط صورة مباشر.');
+  }
+
+  const btn = document.getElementById('btnAddPosterSubmit');
+  if (btn) { btn.disabled = true; btn.textContent = 'جاري تجهيز ورفع البوستر...'; }
+
+  try {
+    let imageSrc = urlVal;
+    if (file) {
+      imageSrc = await compressPosterImageFile(file, 960, 0.78);
+    }
+    appState.posters = appState.posters || [];
+    appState.posters.unshift({
+      id: Date.now(),
+      title: title || 'عرض خاص من مركز الركن الهادئ',
+      image: imageSrc,
+      date: formatDateTime12(getTrueNow()),
+      active: true
+    });
+    if (document.getElementById('posterTitleInput')) document.getElementById('posterTitleInput').value = '';
+    if (fileEl) fileEl.value = '';
+    if (document.getElementById('posterUrlInput')) document.getElementById('posterUrlInput').value = '';
+    SoundFX.success();
+    await pushStateToCloud();
+    renderCustomerPageControls();
+  } catch (e) {
+    SoundFX.scanError();
+    alert('تعذر قراءة الصورة، تأكد من أنها بصيغة JPG أو PNG صالحة.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '➕ نشر البوستر للزبائن'; }
+  }
+}
+
+function toggleOfferPoster(id) {
+  if (!canWrite(false)) return;
+  const p = (appState.posters || []).find(x => x.id === id);
+  if (p) p.active = (p.active === false);
+  pushStateToCloud();
+  renderCustomerPageControls();
+}
+
+function deleteOfferPoster(id) {
+  if (!canWrite(false)) return;
+  if (!confirm('هل تريد حذف هذا البوستر نهائياً؟')) return;
+  appState.posters = (appState.posters || []).filter(x => x.id !== id);
+  SoundFX.remove();
+  pushStateToCloud();
+  renderCustomerPageControls();
+}
+
 function saveQrDoorScanMode(mode) {
   if (!canWrite(false)) return;
   appState.settings = appState.settings || {};
@@ -4735,6 +4936,33 @@ function renderCustomerPageControls() {
       <button onclick="deleteSocialLink(${l.id})" class="text-rose-600 font-bold px-2">حذف</button>
     </div>
   `).join('');
+
+  const posters = appState.posters || [];
+  const pBadge = document.getElementById('postersCountAdminBadge');
+  if (pBadge) pBadge.textContent = `${posters.filter(p => p.active !== false).length} نشط / ${posters.length} إجمالي`;
+  const pGrid = document.getElementById('postersAdminGrid');
+  if (pGrid) {
+    pGrid.innerHTML = posters.map(p => `
+      <div class="rounded-2xl border ${p.active !== false ? 'border-amber-200 bg-amber-50/30' : 'border-slate-200 bg-slate-50 opacity-60'} overflow-hidden flex flex-col justify-between shadow-sm">
+        <div class="aspect-[4/5] bg-slate-100 overflow-hidden relative">
+          <img src="${p.image}" alt="${p.title || ''}" class="w-full h-full object-cover">
+          <span class="absolute top-2 right-2 text-[10px] font-black px-2 py-0.5 rounded-full ${p.active !== false ? 'bg-emerald-600 text-white' : 'bg-slate-600 text-white'}">
+            ${p.active !== false ? 'ظاهر للزبائن' : 'مخفي'}
+          </span>
+        </div>
+        <div class="p-3 space-y-2">
+          <div>
+            <p class="font-black text-xs text-slate-800 truncate">${p.title || 'بوستر عرض'}</p>
+            <p class="text-[10px] text-slate-400 font-bold">${p.date || ''}</p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button onclick="toggleOfferPoster(${p.id})" class="flex-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold py-1 rounded-lg text-[11px]">${p.active !== false ? 'إخفاء' : 'إظهار'}</button>
+            <button onclick="deleteOfferPoster(${p.id})" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold px-2.5 py-1 rounded-lg text-[11px]">🗑️</button>
+          </div>
+        </div>
+      </div>
+    `).join('') || '<p class="col-span-full text-center text-xs text-slate-400 font-bold py-4">لا توجد بوسترات منشورة بعد — ارفع أول بوستر عرض ليظهر للزبائن</p>';
+  }
 
   const qrInput = document.getElementById('qrTargetUrlInput');
   if (!qrInput.value) {
