@@ -222,13 +222,6 @@
 
       <!-- Cloud Status, Sound Toggle, Today Revenue & Active User -->
       <div class="flex items-center gap-1.5 sm:gap-2.5 flex-wrap">
-        <button id="btnSystemUndo" onclick="performSystemUndo()" disabled title="تراجع عن آخر تعديل أو حذف (Ctrl+Z)"
-          class="flex items-center gap-1 bg-amber-50 hover:bg-amber-100 disabled:opacity-40 disabled:cursor-not-allowed text-amber-800 border border-amber-200 px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition">
-          <span>↩️</span>
-          <span class="hidden sm:inline">تراجع (Ctrl+Z)</span>
-          <span id="undoStackBadge" class="hidden bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-full text-[10px] font-black">0</span>
-        </button>
-
         <button id="btnToggleSystemSounds" onclick="toggleSystemSounds()" title="تشغيل / كتم أصوات النظام"
           class="flex items-center gap-1 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition">
           <span id="soundStatusIcon">🔊</span>
@@ -321,6 +314,29 @@
           </div>
         </div>
 
+        <!-- Quick Search, Filter & Sort Toolbar for Live Sessions -->
+        <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-2.5">
+          <div class="relative flex-1 min-w-[200px]">
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔎</span>
+            <input id="liveSessionSearchInput" type="text" oninput="renderLiveSessions()" placeholder="بحث سريع بالاسم، الكود، أو رقم الطاولة..."
+              class="w-full pr-9 pl-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-sky-500">
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <select id="liveSessionFilterSelect" onchange="renderLiveSessions()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-700">
+              <option value="all">📋 الكل</option>
+              <option value="active">🟢 متواجدون الآن</option>
+              <option value="sub">🎫 مشتركو الباقات</option>
+              <option value="paused">⏸️ في استراحة (موقوف)</option>
+              <option value="checkedout">🔴 تم تسجيل خروجهم</option>
+            </select>
+            <select id="liveSessionSortSelect" onchange="renderLiveSessions()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-700">
+              <option value="newest">🕒 الأحدث دخولاً</option>
+              <option value="oldest">⏳ الأقدم دخولاً</option>
+              <option value="seat">🪑 حسب الطاولة</option>
+            </select>
+          </div>
+        </div>
+
         <!-- Active & Checked-Out Sessions Grid -->
         <div id="liveSessionsGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <!-- Rendered dynamically -->
@@ -340,6 +356,27 @@
         </div>
 
         <div id="hallBookingContainer"></div>
+
+        <!-- Advance Hall Reservations Schedule -->
+        <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+            <div>
+              <h3 class="text-lg font-black text-slate-800 flex items-center gap-2"><span>📅</span> جدول الحجوزات المسبقة للقاعة الكاملة</h3>
+              <p class="text-xs text-slate-500">سجّل حجوزات الأيام القادمة مع العربون وابدأ الجلسة منها بضغطة زر</p>
+            </div>
+            <span id="hallReservationsCountBadge" class="bg-amber-100 text-amber-800 border border-amber-200 px-3 py-1 rounded-full text-xs font-black">0 حجوزات قادمة</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5">
+            <input id="resHallNameInput" type="text" placeholder="اسم المستأجر / الجهة *" class="px-3 py-2 border rounded-xl text-xs font-bold">
+            <input id="resHallPhoneInput" type="tel" dir="ltr" placeholder="رقم الموبايل (اختياري)" class="px-3 py-2 border rounded-xl text-xs font-bold text-right">
+            <input id="resHallDateInput" type="date" class="px-3 py-2 border rounded-xl text-xs font-bold">
+            <input id="resHallTimeInput" type="time" class="px-3 py-2 border rounded-xl text-xs font-bold">
+            <input id="resHallDepositInput" type="number" min="0" placeholder="العربون ل.س (اختياري)" class="px-3 py-2 border rounded-xl text-xs font-bold">
+            <button onclick="addHallReservation()" class="bg-amber-500 hover:bg-amber-600 text-white font-black py-2 px-4 rounded-xl text-xs shadow transition">➕ إضافة حجز مسبق</button>
+          </div>
+          <input id="resHallNotesInput" type="text" placeholder="ملاحظات الحجز (مثلاً: دورة برمجة، عدد الأشخاص، تجهيزات مطلوبة...)" class="w-full px-3.5 py-2 border rounded-xl text-xs font-bold">
+          <div id="hallReservationsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1"></div>
+        </div>
       </section>
 
       <!-- ==================== TAB 3: CUSTOMERS & BARCODES ==================== -->
@@ -748,8 +785,8 @@
             <div class="bg-sky-50 border border-sky-200 rounded-2xl p-3.5 space-y-1.5">
               <label class="block text-xs font-black text-sky-900">⚡ عند مسح الزبون المسجل لبوستر الـ QR مرة ثانية:</label>
               <select id="qrDoorScanModeSelect" onchange="saveQrDoorScanMode(this.value)" class="w-full px-3 py-2 bg-white border border-sky-300 rounded-xl text-xs font-extrabold text-slate-800">
+                <option value="notify" selected>🔔 إشعار عند الكاشير (هل تريد تسجيل دخول فلان؟)</option>
                 <option value="auto">✅ تسجيل دخول تلقائي + إشعار فوري عند الكاشير</option>
-                <option value="notify">🔔 إشعار فقط عند الكاشير (لتسجيل الدخول يدوياً)</option>
                 <option value="off">⛔ إيقاف (عرض بطاقة الزبون فقط بدون إشعار)</option>
               </select>
               <p class="text-[11px] text-sky-700 font-bold">ملاحظة: لا يتكرر الإشعار أو الدخول عند تحديث الصفحة (Refresh) نهائياً — يعمل فقط عند مسح الكود بالكاميرا من جديد.</p>
@@ -798,6 +835,18 @@
               <span>📂</span> استعادة باك اب
               <input type="file" accept=".json" onchange="restoreFullBackup(event)" class="hidden">
             </label>
+          </div>
+        </div>
+
+        <!-- Peak Hours & Best-Selling Products Analytics -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+            <h3 class="font-black text-slate-800 text-sm sm:text-base flex items-center gap-2"><span>📈</span> أوقات الذروة (أكثر الساعات والأيام ازدحاماً)</h3>
+            <div id="analyticsPeakHoursBox" class="space-y-2 text-xs"></div>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+            <h3 class="font-black text-slate-800 text-sm sm:text-base flex items-center gap-2"><span>🏆</span> الأصناف الأكثر مبيعاً وتنبيهات المخزون</h3>
+            <div id="analyticsTopProductsBox" class="space-y-2 text-xs"></div>
           </div>
         </div>
 
@@ -886,12 +935,17 @@
         <!-- Packages Management (Hours + Days + Optional Free Perk/Drink) -->
         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h3 class="font-black text-slate-800">🎫 إدارة الباقات المتاحة (الساعات + المدة بالأيام + هدية مجانية اختيارية)</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
             <input id="pkgNameInput" type="text" placeholder="اسم الباقة (مثلاً: الباقة الذهبية)" class="px-3.5 py-2 border rounded-xl text-sm">
             <input id="pkgHoursInput" type="number" placeholder="عدد الساعات (مثلاً 20)" class="px-3.5 py-2 border rounded-xl text-sm">
             <input id="pkgDaysInput" type="number" placeholder="المدة بالأيام (مثلاً 30)" class="px-3.5 py-2 border rounded-xl text-sm">
             <input id="pkgPriceInput" type="number" placeholder="سعر الباقة (ل.س)" class="px-3.5 py-2 border rounded-xl text-sm">
             <input id="pkgFreePerkInput" type="text" placeholder="ميزة/مشروب مجاني (اختياري)" class="px-3.5 py-2 border rounded-xl text-sm">
+            <select id="pkgBillingModeInput" class="px-3 py-2 border rounded-xl text-xs font-extrabold bg-indigo-50 text-indigo-900">
+              <option value="">حسب الإعداد العام</option>
+              <option value="hour65">⏳ ساعة ساعة (65 دقيقة)</option>
+              <option value="minute">⏱️ بالدقيقة الفعلية</option>
+            </select>
           </div>
           <button onclick="addPackageTemplate()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-5 rounded-xl text-sm">➕ إضافة الباقة</button>
           <div id="packagesAdminList" class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2"></div>
@@ -900,9 +954,10 @@
         <!-- Products Management -->
         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h3 class="font-black text-slate-800">☕ إدارة منتجات الكافيه والخدمات</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
             <input id="prodNameInput" type="text" placeholder="اسم المنتج (مثلاً: قهوة إسبريسو)" class="px-3.5 py-2 border rounded-xl text-sm">
             <input id="prodPriceInput" type="number" placeholder="السعر (ل.س)" class="px-3.5 py-2 border rounded-xl text-sm">
+            <input id="prodStockInput" type="number" min="0" placeholder="المخزون (اختياري)" class="px-3.5 py-2 border rounded-xl text-sm">
             <select id="prodIconInput" class="px-3.5 py-2 border rounded-xl text-sm">
               <option value="☕">☕ قهوة / مشروب ساخن</option>
               <option value="🥤">🥤 عصير / مشروب بارد</option>
@@ -963,6 +1018,10 @@
           <label class="block text-xs font-bold text-slate-500 mb-1">أو اكتب اسم الزائر السريع</label>
           <input id="sessionGuestName" type="text" placeholder="اسم الزائر..." class="w-full px-3.5 py-2.5 border rounded-xl text-sm">
         </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-500 mb-1">🪑 رقم الطاولة / القسم (اختياري)</label>
+          <input id="sessionSeatInput" type="text" placeholder="مثلاً: طاولة 4، قاعة هادئة، شباك..." class="w-full px-3.5 py-2.5 border rounded-xl text-sm font-bold">
+        </div>
       </div>
       <div class="flex justify-end gap-2 pt-2">
         <button onclick="closeModal('newSessionModal')" class="px-4 py-2 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100">إلغاء</button>
@@ -981,6 +1040,12 @@
             <p id="modalSessionMeta" class="text-xs text-slate-500">---</p>
             <button onclick="toggleEditStartTimeBox()" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold transition">
               ✏️ تعديل وقت الدخول
+            </button>
+            <button id="btnModalPauseToggle" onclick="toggleSessionPause(event, selectedSessionId)" class="bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold transition">
+              ⏸️ استراحة (إيقاف مؤقت)
+            </button>
+            <button onclick="editSessionSeatInline()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold transition">
+              🪑 <span id="modalSessionSeatLabel">تحديد طاولة</span>
             </button>
           </div>
         </div>
@@ -1008,6 +1073,9 @@
 
       <!-- Active Subscription Perk Notice if any -->
       <div id="modalSubPerkBanner" class="hidden bg-indigo-50 border border-indigo-200 text-indigo-800 px-4 py-2 rounded-xl text-xs font-extrabold"></div>
+      <!-- Customer Note & Debt Alert Banners -->
+      <div id="modalCustNoteBanner" class="hidden bg-amber-50 border border-amber-200 text-amber-900 px-4 py-2 rounded-xl text-xs font-bold"></div>
+      <div id="modalCustDebtBanner" class="hidden bg-rose-50 border border-rose-300 text-rose-800 px-4 py-2 rounded-xl text-xs font-black flex items-center justify-between gap-2"></div>
 
       <!-- Time & Cost Box -->
       <div class="grid grid-cols-3 gap-3 bg-slate-50 p-4 rounded-2xl border">
@@ -1070,6 +1138,12 @@
           </button>
           <button id="btnUseSubHour" onclick="checkoutSession('sub')" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs shadow">
             🎫 خصم من الباقة
+          </button>
+          <button id="btnCheckoutDebt" onclick="checkoutSession('debt')" class="hidden bg-amber-600 hover:bg-amber-700 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs shadow">
+            📒 تسجيل كذمة (آجل)
+          </button>
+          <button id="btnModalWhatsApp" onclick="sendSessionWhatsApp(selectedSessionId)" class="hidden bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-2.5 rounded-xl text-xs shadow">
+            💬 واتساب
           </button>
         </div>
         <div class="flex gap-2 mr-auto">
@@ -1181,6 +1255,10 @@
           <label class="block text-xs font-extrabold text-slate-600 mb-1">العمل / الدراسة / التخصص</label>
           <input id="newCustJob" type="text" placeholder="العمل / الدراسة / التخصص" class="w-full px-3.5 py-2.5 border rounded-xl text-sm font-bold">
         </div>
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">📝 ملاحظات خاصة عن الزبون (اختياري)</label>
+          <input id="newCustNotes" type="text" placeholder="مثلاً: يفضل القهوة وسط، طالب طب سنة رابعة..." class="w-full px-3.5 py-2.5 border rounded-xl text-sm font-bold">
+        </div>
       </div>
       <div class="flex justify-end gap-2 pt-2">
         <button onclick="closeModal('addCustomerModal')" class="px-4 py-2 rounded-xl text-sm font-bold text-slate-500">إلغاء</button>
@@ -1215,6 +1293,10 @@
         <div>
           <label class="block text-xs font-extrabold text-slate-600 mb-1">العمل / الدراسة / التخصص</label>
           <input id="editCustJob" type="text" class="w-full px-3.5 py-2 border rounded-xl text-sm font-bold">
+        </div>
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">📝 ملاحظات خاصة عن الزبون</label>
+          <input id="editCustNotes" type="text" placeholder="ملاحظات تظهر للكاشير عند دخول الزبون..." class="w-full px-3.5 py-2 border rounded-xl text-sm font-bold">
         </div>
         <div class="grid grid-cols-3 gap-2 pt-1">
           <div>
@@ -1254,6 +1336,10 @@
         <div>
           <label class="block text-xs font-extrabold text-slate-600 mb-1">السعر (ل.س) *</label>
           <input id="editProdPrice" type="number" min="1" class="w-full px-3.5 py-2.5 border rounded-xl text-sm font-bold">
+        </div>
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">📦 الكمية بالمخزون (اتركه فارغاً لعدم التتبع)</label>
+          <input id="editProdStock" type="number" min="0" placeholder="غير محدود" class="w-full px-3.5 py-2.5 border rounded-xl text-sm font-bold">
         </div>
         <div>
           <label class="block text-xs font-extrabold text-slate-600 mb-1">الأيقونة</label>
@@ -1752,12 +1838,12 @@ function syncAuthGate() {
 function canWrite(requireAdmin = false) {
   if (!currentLoggedUser) return false;
   if (currentLoggedUser.role === 'viewer') {
-    SoundFX.error();
+    SoundFX.scanError();
     alert('حسابك بوضع (مشاهدة فقط) ولا يملك صلاحية التعديل أو الإضافة.');
     return false;
   }
   if (requireAdmin && currentLoggedUser.role !== 'admin') {
-    SoundFX.error();
+    SoundFX.scanError();
     alert('هذه الصلاحية مخصصة للمدير العام فقط.');
     return false;
   }
@@ -1786,7 +1872,7 @@ async function attemptSuperuserRecovery() {
   const keyHash = await computeSaltedHash(keyVal);
   if (keyHash !== SUPERUSER_HASH) {
     failedLoginAttempts++;
-    SoundFX.error();
+    SoundFX.scanError();
     if (failedLoginAttempts >= 5) loginLockoutUntil = Date.now() + 30000;
     document.getElementById('superuserErrorMsg').classList.remove('hidden');
     return;
@@ -1820,7 +1906,7 @@ async function attemptSystemLogin() {
   pInput.classList.remove('border-rose-500', 'bg-rose-50');
 
   if (!u || !p) {
-    SoundFX.error();
+    SoundFX.scanError();
     if (!u) uInput.classList.add('border-rose-500', 'bg-rose-50');
     if (!p) pInput.classList.add('border-rose-500', 'bg-rose-50');
     errEl.textContent = '⚠️ يوجد غلط: يرجى إدخال اسم المستخدم وكلمة المرور أولاً!';
@@ -1865,7 +1951,7 @@ async function attemptSystemLogin() {
 
   if (!found) {
     failedLoginAttempts++;
-    SoundFX.error();
+    SoundFX.scanError();
     uInput.classList.add('border-rose-500', 'bg-rose-50');
     pInput.classList.add('border-rose-500', 'bg-rose-50');
     pInput.value = '';
@@ -2157,25 +2243,13 @@ async function importInbox() {
 
 const UNDO_STACK_MAX = 25;
 let undoStateStack = [];
+let redoStateStack = [];
 let lastCommittedStateSnapshot = null;
 
 function syncUndoBaseline() {
   try {
     lastCommittedStateSnapshot = JSON.stringify(appState);
   } catch (e) {}
-  updateUndoButtonUI();
-}
-
-function updateUndoButtonUI() {
-  const btn = document.getElementById('btnSystemUndo');
-  const badge = document.getElementById('undoStackBadge');
-  if (!btn) return;
-  const count = undoStateStack.length;
-  btn.disabled = count === 0;
-  if (badge) {
-    badge.textContent = count;
-    badge.classList.toggle('hidden', count === 0);
-  }
 }
 
 function showUndoToast(msg) {
@@ -2202,30 +2276,62 @@ function performSystemUndo() {
     showUndoToast('ℹ️ لا توجد تعديلات سابقة للتراجع عنها');
     return;
   }
+  const currentSnapshot = JSON.stringify(appState);
   const prevJson = undoStateStack.pop();
   try {
+    redoStateStack.push(currentSnapshot);
+    if (redoStateStack.length > UNDO_STACK_MAX) redoStateStack.shift();
     appState = JSON.parse(prevJson);
     lastCommittedStateSnapshot = prevJson;
-    updateUndoButtonUI();
     if (typeof SoundFX !== 'undefined' && SoundFX.click) SoundFX.click();
     pushStateToCloud(true);
     renderAll();
-    showUndoToast('↩️ تم التراجع عن آخر تعديل/حذف بنجاح!');
+    showUndoToast('↩️ تم التراجع عن آخر خطوة (Ctrl+Z)');
   } catch (e) {
     console.error('Undo failed', e);
   }
 }
 
+function performSystemRedo() {
+  if (!canWrite(false)) return;
+  if (redoStateStack.length === 0) {
+    showUndoToast('ℹ️ لا توجد خطوات متقدمة لإعادتها');
+    return;
+  }
+  const currentSnapshot = JSON.stringify(appState);
+  const nextJson = redoStateStack.pop();
+  try {
+    undoStateStack.push(currentSnapshot);
+    if (undoStateStack.length > UNDO_STACK_MAX) undoStateStack.shift();
+    appState = JSON.parse(nextJson);
+    lastCommittedStateSnapshot = nextJson;
+    if (typeof SoundFX !== 'undefined' && SoundFX.click) SoundFX.click();
+    pushStateToCloud(true);
+    renderAll();
+    showUndoToast('↪️ تم إعادة الخطوة بنجاح (Ctrl+Y)');
+  } catch (e) {
+    console.error('Redo failed', e);
+  }
+}
+
 document.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'z' || e.key === 'Z' || e.code === 'KeyZ')) {
-    const tag = (document.activeElement && document.activeElement.tagName) || '';
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.activeElement?.isContentEditable) {
-      return; // Let native text-box undo work normally
-    }
-    const lockOverlay = document.getElementById('loginLockOverlay');
-    if (lockOverlay && !lockOverlay.classList.contains('hidden')) return;
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || document.activeElement?.isContentEditable) {
+    return; // Let native text-box undo/redo work normally
+  }
+  const lockOverlay = document.getElementById('loginLockOverlay');
+  if (lockOverlay && !lockOverlay.classList.contains('hidden')) return;
+
+  const isZ = (e.key === 'z' || e.key === 'Z' || e.code === 'KeyZ');
+  const isY = (e.key === 'y' || e.key === 'Y' || e.code === 'KeyY');
+
+  if (isZ && !e.shiftKey) {
     e.preventDefault();
     performSystemUndo();
+  } else if (isY || (isZ && e.shiftKey)) {
+    e.preventDefault();
+    performSystemRedo();
   }
 });
 
@@ -2238,10 +2344,10 @@ async function pushStateToCloud(skipUndoPush = false) {
     if (lastCommittedStateSnapshot && lastCommittedStateSnapshot !== currentSnapshot) {
       undoStateStack.push(lastCommittedStateSnapshot);
       if (undoStateStack.length > UNDO_STACK_MAX) undoStateStack.shift();
+      redoStateStack = []; // Clear redo history on new action
     }
   }
   lastCommittedStateSnapshot = currentSnapshot;
-  updateUndoButtonUI();
 
   lastLocalMutationAt = Date.now();
   localStorage.setItem('qc_admin_state', currentSnapshot);
@@ -2449,6 +2555,9 @@ const SoundFX = {
   scanError() {
     playToneSequence([[195, 0.16, 1.0], [145, 0.24, 1.0]], 'sawtooth', 0.88);
   },
+  error() {
+    this.scanError();
+  },
   // Crisp accounting software button / tab click
   click() {
     playToneSequence([[740, 0.035, 0.35]], 'sine', 0.45);
@@ -2497,14 +2606,165 @@ function getActiveCustomerSub(customerId, nowTs = getTrueNow()) {
   ) || null;
 }
 
+function calculateSubDeductHours(elapsedMs, sub) {
+  const mode = (sub && sub.billingMode) || (appState.settings && appState.settings.subBillingMode) || 'minute';
+  if (mode === 'hour65') {
+    const totalMins = Math.max(1, elapsedMs / 60000);
+    const hours = totalMins <= 65 ? 1 : (1 + Math.ceil((totalMins - 65) / 60));
+    return { hours, mode: 'hour65', label: 'ساعة ساعة (65 د)' };
+  }
+  const hours = Math.max(0.02, +(elapsedMs / 3600000).toFixed(2));
+  return { hours, mode: 'minute', label: 'بالدقيقة' };
+}
+
+function getSessionElapsedMs(session, nowTs = getTrueNow()) {
+  if (!session || !session.startTime) return 0;
+  const endRef = session.checkedOut && session.endTime ? session.endTime : nowTs;
+  const totalPaused = Number(session.totalPausedMs) || 0;
+  const currentPause = (session.isPaused && session.pausedAt) ? Math.max(0, endRef - session.pausedAt) : 0;
+  return Math.max(0, endRef - session.startTime - totalPaused - currentPause);
+}
+
+function toggleSessionPause(event, sessionId) {
+  if (event) event.stopPropagation();
+  if (!canWrite(false)) return;
+  const session = appState.sessions.find(s => s.id === sessionId);
+  if (!session || session.checkedOut) return;
+  const now = getTrueNow();
+  if (session.isPaused) {
+    const pausedDur = session.pausedAt ? Math.max(0, now - session.pausedAt) : 0;
+    session.totalPausedMs = (Number(session.totalPausedMs) || 0) + pausedDur;
+    session.isPaused = false;
+    session.pausedAt = null;
+    SoundFX.click();
+  } else {
+    session.isPaused = true;
+    session.pausedAt = now;
+    SoundFX.click();
+  }
+  pushStateToCloud();
+  renderLiveSessions();
+  if (selectedSessionId === sessionId) {
+    const btn = document.getElementById('btnModalPauseToggle');
+    if (btn) btn.textContent = session.isPaused ? '▶️ استئناف العداد' : '⏸️ استراحة (إيقاف مؤقت)';
+    updateModalSessionLiveNumbers();
+  }
+}
+
+function editSessionSeatInline() {
+  if (!canWrite(false) || !selectedSessionId) return;
+  const session = appState.sessions.find(s => s.id === selectedSessionId);
+  if (!session) return;
+  const val = prompt('أدخل رقم الطاولة أو القسم (اتركه فارغاً للإزالة):', session.seat || '');
+  if (val === null) return;
+  session.seat = val.trim();
+  const lbl = document.getElementById('modalSessionSeatLabel');
+  if (lbl) lbl.textContent = session.seat || 'تحديد طاولة';
+  pushStateToCloud();
+  renderLiveSessions();
+}
+
+function getSubAlertStatus(sub, nowTs = getTrueNow()) {
+  if (!sub) return null;
+  const rem = Number(sub.remainingHours) || 0;
+  const daysLeft = sub.expiresAt ? Math.ceil((sub.expiresAt - nowTs) / 86400000) : 99;
+  if (rem <= 1 || daysLeft <= 2) {
+    return { lowHours: rem <= 1, lowDays: daysLeft <= 2, daysLeft: Math.max(0, daysLeft), rem };
+  }
+  return null;
+}
+
+function formatWaPhone(phone) {
+  const p = normalizeSyrianPhone(phone || '');
+  if (p.startsWith('09') && p.length === 10) return '963' + p.slice(1);
+  return p.replace(/[^0-9]/g, '');
+}
+
+function sendSessionWhatsApp(sessionId, event) {
+  if (event) event.stopPropagation();
+  const s = appState.sessions.find(x => x.id === sessionId);
+  if (!s) return;
+  const cust = appState.customers.find(c => c.id === s.customerId);
+  if (!cust || !cust.phone) return alert('لا يوجد رقم موبايل مسجل لهذا الزبون');
+  const waNum = formatWaPhone(cust.phone);
+  const now = getTrueNow();
+  const bill = getSessionBillingInfo(s, now);
+  const durStr = s.checkedOut ? (s.finalDuration || formatDuration(bill.elapsed)) : formatDuration(bill.elapsed);
+  const amountStr = s.checkedOut ? formatMoney(s.finalAmount || 0) : formatMoney(bill.total);
+  const ordersTxt = (s.orders && s.orders.length > 0) ? s.orders.map(o => o.name).join('، ') : 'لا يوجد';
+  let msg = `مرحباً ${cust.name} 👋\nملخص زيارتك في *مركز الركن الهادئ*:\n`;
+  msg += `⏱️ المدة: ${durStr}\n`;
+  msg += `☕ الطلبات: ${ordersTxt}\n`;
+  if (bill.isSub) {
+    msg += `🎫 الباقة: ${bill.sub.packageName} (المتبقي: ${s.checkedOut ? bill.sub.remainingHours : bill.afterHours} ساعة)\n`;
+  }
+  msg += `💰 الحساب: ${amountStr}\n`;
+  if ((cust.debtBalance || 0) > 0) {
+    msg += `📒 رصيد الذمم المسجل: ${formatMoney(cust.debtBalance)}\n`;
+  }
+  msg += `نتمنى لك كل التوفيق والنجاح 🌟`;
+  window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function sendCustomerWhatsApp(custId) {
+  const cust = appState.customers.find(c => c.id === custId);
+  if (!cust || !cust.phone) return alert('لا يوجد رقم موبايل مسجل لهذا الزبون');
+  const waNum = formatWaPhone(cust.phone);
+  const sub = getActiveCustomerSub(cust.id);
+  let msg = `مرحباً ${cust.name} 👋\nتحية من *مركز الركن الهادئ*:\n`;
+  msg += `🪪 كود العضوية: ${cust.code}\n`;
+  if (sub) {
+    const daysLeft = sub.expiresAt ? Math.max(0, Math.ceil((sub.expiresAt - getTrueNow()) / 86400000)) : (sub.durationDays || 30);
+    msg += `🎫 باقتك (${sub.packageName}): متبقي ${sub.remainingHours} ساعة (صلاحية ${daysLeft} يوم)\n`;
+  }
+  if ((cust.freeHours || 0) > 0) msg += `🎁 ساعاتك المجانية: ${cust.freeHours} ساعة\n`;
+  if ((cust.debtBalance || 0) > 0) msg += `📒 رصيد الذمم المستحق: ${formatMoney(cust.debtBalance)}\n`;
+  msg += `بانتظارك دائماً للدراسة والإنجاز 🌟`;
+  window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function payCustomerDebt(custId) {
+  if (!canWrite(false)) return;
+  const cust = appState.customers.find(c => c.id === custId);
+  if (!cust || !(cust.debtBalance > 0)) return;
+  const raw = prompt(`تسديد ذمة للزبون: ${cust.name}\nالرصيد المستحق حالياً: ${formatMoney(cust.debtBalance)}\nأدخل المبلغ المسدد الآن (ل.س):`, cust.debtBalance);
+  if (raw === null) return;
+  const pay = Math.round(Number(raw) || 0);
+  if (pay <= 0) return alert('أدخل مبلغاً صحيحاً أكبر من 0');
+  const actualPay = Math.min(cust.debtBalance, pay);
+  cust.debtBalance = Math.max(0, Math.round((cust.debtBalance || 0) - actualPay));
+  const now = getTrueNow();
+  appState.daily.unshift({
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    date: formatDateTime12(now),
+    isoDate: new Date(now).toISOString().slice(0, 10),
+    type: 'تسديد ذمة',
+    title: `تسديد ذمة - ${cust.name} (متبقي: ${formatMoney(cust.debtBalance)})`,
+    amount: actualPay
+  });
+  SoundFX.scanCheckOut();
+  pushStateToCloud();
+  renderAll();
+  if (selectedSessionId) openSessionDetail(selectedSessionId);
+}
+
+function decrementProductStock(productId) {
+  const prod = (appState.products || []).find(p => p.id === productId);
+  if (prod && prod.stock !== undefined && prod.stock !== null && prod.stock !== '') {
+    const cur = Number(prod.stock);
+    if (!isNaN(cur) && cur > 0) prod.stock = cur - 1;
+  }
+}
+
 function getSessionBillingInfo(session, nowTs = getTrueNow()) {
-  const elapsed = Math.max(0, nowTs - session.startTime);
+  const elapsed = getSessionElapsedMs(session, nowTs);
   const hoursSpent = +(elapsed / 3600000).toFixed(2);
   const ordersTotal = (session.orders || []).reduce((sum, o) => sum + (Number(o.price) || 0), 0);
   const sub = getActiveCustomerSub(session.customerId, nowTs);
   if (sub) {
-    const deductHours = Math.min(Number(sub.remainingHours) || 0, Math.max(0.01, hoursSpent));
-    const afterHours = Math.max(0, +((Number(sub.remainingHours) || 0) - hoursSpent).toFixed(2));
+    const subDeduct = calculateSubDeductHours(elapsed, sub);
+    const deductHours = Math.min(Number(sub.remainingHours) || 0, subDeduct.hours);
+    const afterHours = Math.max(0, +((Number(sub.remainingHours) || 0) - subDeduct.hours).toFixed(2));
     return {
       elapsed,
       hoursSpent,
@@ -2763,7 +3023,7 @@ async function closeWebcamScannerModal() {
 
 function finalizeCustomerSessionCheckout(session, mode = 'cash') {
   const now = getTrueNow();
-  const elapsed = now - session.startTime;
+  const elapsed = getSessionElapsedMs(session, now);
   const hoursSpent = Math.max(0.25, +(elapsed / 3600000).toFixed(2));
   const ordersTotal = (session.orders || []).reduce((sum, o) => sum + o.price, 0);
   let timeCost = calculateTimeCost(elapsed, appState.settings.hourlyRate);
@@ -2781,20 +3041,10 @@ function finalizeCustomerSessionCheckout(session, mode = 'cash') {
       s.customerId === session.customerId && s.remainingHours > 0 && (!s.expiresAt || s.expiresAt > now)
     );
     if (sub) {
-      const totalMins = Math.max(1, elapsed / 60000);
-      const subMode = appState.settings.subBillingMode || 'minute';
-      let subDeductHours;
-      let subModeLabel;
-      if (subMode === 'hour65') {
-        subDeductHours = totalMins <= 65 ? 1 : (1 + Math.ceil((totalMins - 65) / 60));
-        subModeLabel = 'نظام 65 دقيقة';
-      } else {
-        subDeductHours = Math.max(0.02, +(elapsed / 3600000).toFixed(2));
-        subModeLabel = 'بالدقيقة';
-      }
-      sub.remainingHours = Math.max(0, +(sub.remainingHours - subDeductHours).toFixed(2));
+      const subDeduct = calculateSubDeductHours(elapsed, sub);
+      sub.remainingHours = Math.max(0, +(sub.remainingHours - subDeduct.hours).toFixed(2));
       timeCost = 0;
-      note = `خصم من باقة (${sub.packageName}) بمقدار ${subDeductHours} ساعة (${subModeLabel}) + طلبات`;
+      note = `خصم من باقة (${sub.packageName}) بمقدار ${subDeduct.hours} ساعة (${subDeduct.label}) + طلبات`;
     }
   }
 
@@ -2825,17 +3075,25 @@ function finalizeCustomerSessionCheckout(session, mode = 'cash') {
     : '';
 
   const dailyTxId = Date.now() + Math.floor(Math.random() * 1000);
-  appState.daily.unshift({
-    id: dailyTxId,
-    sessionId: session.id,
-    date: formatDateTime12(now),
-    isoDate: new Date(now).toISOString().slice(0, 10),
-    type: 'جلسة دراسة',
-    title: `${session.customerName} - ${note}${discountSuffix}`,
-    amount: grandTotal
-  });
+  if (mode === 'debt' && cust && grandTotal > 0) {
+    cust.debtBalance = Math.round((Number(cust.debtBalance) || 0) + grandTotal);
+    session.isDebt = true;
+    session.dailyTxId = null;
+  } else {
+    appState.daily.unshift({
+      id: dailyTxId,
+      sessionId: session.id,
+      date: formatDateTime12(now),
+      isoDate: new Date(now).toISOString().slice(0, 10),
+      type: 'جلسة دراسة',
+      title: `${session.customerName} - ${note}${discountSuffix}`,
+      amount: grandTotal
+    });
+    session.dailyTxId = dailyTxId;
+  }
 
-  session.dailyTxId = dailyTxId;
+  session.isPaused = false;
+  session.pausedAt = null;
   session.checkedOut = true;
   session.endTime = now;
   session.finalDuration = formatDuration(elapsed);
@@ -2914,16 +3172,22 @@ function confirmStartSession() {
   if (!canWrite(false)) return;
   const custId = document.getElementById('sessionCustomerSelect').value;
   const guestName = document.getElementById('sessionGuestName').value.trim();
+  const seat = (document.getElementById('sessionSeatInput')?.value || '').trim();
+  if (document.getElementById('sessionSeatInput')) document.getElementById('sessionSeatInput').value = '';
   if (custId) {
     const cust = appState.customers.find(c => String(c.id) === String(custId));
-    if (cust) startSessionForCustomer(cust);
+    if (cust) startSessionForCustomer(cust, seat);
   } else if (guestName) {
     appState.sessions.unshift({
       id: Date.now(),
       customerId: null,
       customerName: guestName,
       customerCode: 'زائر',
+      seat,
       startTime: getTrueNow(),
+      totalPausedMs: 0,
+      isPaused: false,
+      pausedAt: null,
       orders: [],
       checkedOut: false
     });
@@ -2933,18 +3197,25 @@ function confirmStartSession() {
   closeModal('newSessionModal');
 }
 
-function startSessionForCustomer(customer) {
+function startSessionForCustomer(customer, seat = '') {
   if (!canWrite(false)) return;
   if (appState.sessions.some(s => s.customerId === customer.id && !s.checkedOut)) {
     alert('هذا الزبون لديه جلسة نشطة حالياً!');
     return;
+  }
+  if ((customer.debtBalance || 0) > 0) {
+    showScanToast(`⚠️ تنبيه ذمة على ${customer.name}`, `يوجد رصيد ذمة سابق بقيمة ${formatMoney(customer.debtBalance)}`, 'error');
   }
   appState.sessions.unshift({
     id: Date.now(),
     customerId: customer.id,
     customerName: customer.name,
     customerCode: customer.code,
+    seat: seat || '',
     startTime: getTrueNow(),
+    totalPausedMs: 0,
+    isPaused: false,
+    pausedAt: null,
     orders: [],
     checkedOut: false
   });
@@ -3004,6 +3275,33 @@ function openSessionDetail(sessionId) {
   );
   document.getElementById('btnUseFreeHour').classList.toggle('hidden', !(cust && (cust.freeHours || 0) >= 1));
   document.getElementById('btnUseSubHour').classList.toggle('hidden', !sub);
+  const btnDebt = document.getElementById('btnCheckoutDebt');
+  if (btnDebt) btnDebt.classList.toggle('hidden', !cust);
+  const btnWa = document.getElementById('btnModalWhatsApp');
+  if (btnWa) btnWa.classList.toggle('hidden', !(cust && cust.phone));
+  const btnPause = document.getElementById('btnModalPauseToggle');
+  if (btnPause) btnPause.textContent = session.isPaused ? '▶️ استئناف العداد' : '⏸️ استراحة (إيقاف مؤقت)';
+  const seatLbl = document.getElementById('modalSessionSeatLabel');
+  if (seatLbl) seatLbl.textContent = session.seat || 'تحديد طاولة';
+
+  const noteBanner = document.getElementById('modalCustNoteBanner');
+  if (noteBanner) {
+    if (cust && cust.notes) {
+      noteBanner.classList.remove('hidden');
+      noteBanner.textContent = `📝 ملاحظة الزبون: ${cust.notes}`;
+    } else {
+      noteBanner.classList.add('hidden');
+    }
+  }
+  const debtBanner = document.getElementById('modalCustDebtBanner');
+  if (debtBanner) {
+    if (cust && (cust.debtBalance || 0) > 0) {
+      debtBanner.classList.remove('hidden');
+      debtBanner.innerHTML = `<span>📒 يوجد ذمة سابقة على الزبون: ${formatMoney(cust.debtBalance)}</span><button onclick="payCustomerDebt(${cust.id})" class="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded-lg text-[11px] font-black">💵 تسديد الذمة</button>`;
+    } else {
+      debtBanner.classList.add('hidden');
+    }
+  }
 
   const perkBanner = document.getElementById('modalSubPerkBanner');
   if (sub && sub.freePerk) {
@@ -3109,10 +3407,12 @@ function addProductToSession(sessionId, productId) {
   session.orders = session.orders || [];
   session.orders.push({
     id: Date.now() + Math.random(),
+    productId: prod.id,
     name: prod.name,
     price: prod.price,
     time: formatTime12(getTrueNow(), false)
   });
+  decrementProductStock(prod.id);
   pushStateToCloud();
   updateModalSessionLiveNumbers();
   renderLiveSessions();
@@ -3310,8 +3610,83 @@ function checkAndAwardLoyalty(cust) {
 }
 
 // ==================== FULL HALL BOOKING (SUPPORTS REGISTERED CUSTOMERS) ====================
+function addHallReservation() {
+  if (!canWrite(false)) return;
+  const name = (document.getElementById('resHallNameInput')?.value || '').trim();
+  const phone = (document.getElementById('resHallPhoneInput')?.value || '').trim();
+  const date = (document.getElementById('resHallDateInput')?.value || '').trim();
+  const time = (document.getElementById('resHallTimeInput')?.value || '').trim();
+  const deposit = Math.max(0, Number(document.getElementById('resHallDepositInput')?.value) || 0);
+  const notes = (document.getElementById('resHallNotesInput')?.value || '').trim();
+  if (!name || !date) return alert('يرجى إدخال اسم المستأجر وتاريخ الحجز');
+  appState.hallReservations = appState.hallReservations || [];
+  appState.hallReservations.push({ id: Date.now(), name, phone, date, time: time || '10:00', deposit, notes });
+  ['resHallNameInput', 'resHallPhoneInput', 'resHallDateInput', 'resHallTimeInput', 'resHallDepositInput', 'resHallNotesInput'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  SoundFX.success();
+  pushStateToCloud();
+  renderHallReservations();
+}
+
+function deleteHallReservation(resId) {
+  if (!canWrite(false)) return;
+  if (!confirm('هل تريد حذف هذا الحجز المسبق؟')) return;
+  appState.hallReservations = (appState.hallReservations || []).filter(r => r.id !== resId);
+  SoundFX.remove();
+  pushStateToCloud();
+  renderHallReservations();
+}
+
+function startHallFromReservation(resId) {
+  if (!canWrite(false)) return;
+  if (appState.hallSession) return alert('القاعة محجوزة حالياً بالفعل!');
+  const r = (appState.hallReservations || []).find(x => x.id === resId);
+  if (!r) return;
+  appState.hallSession = {
+    id: Date.now(),
+    renterName: r.name,
+    renterPhone: r.phone || '',
+    notes: `${r.notes || 'حجز مسبق'}${r.deposit > 0 ? ` (عربون مدفوع: ${formatMoney(r.deposit)})` : ''}`,
+    startTime: getTrueNow(),
+    hourlyRate: appState.settings.hallHourlyRate || 25000,
+    orders: []
+  };
+  appState.hallReservations = (appState.hallReservations || []).filter(x => x.id !== resId);
+  SoundFX.scanCheckIn();
+  pushStateToCloud();
+  renderAll();
+}
+
+function renderHallReservations() {
+  const box = document.getElementById('hallReservationsList');
+  const badge = document.getElementById('hallReservationsCountBadge');
+  if (!box) return;
+  const list = [...(appState.hallReservations || [])].sort((a, b) => (`${a.date} ${a.time}`).localeCompare(`${b.date} ${b.time}`));
+  if (badge) badge.textContent = `${list.length} حجوزات قادمة`;
+  box.innerHTML = list.map(r => `
+    <div class="p-4 rounded-2xl border border-amber-200 bg-amber-50/40 flex flex-col justify-between gap-2.5">
+      <div>
+        <div class="flex justify-between items-center text-[11px] font-black text-amber-800">
+          <span>📅 ${r.date} • 🕒 ${r.time}</span>
+          ${r.deposit > 0 ? `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">عربون: ${formatMoney(r.deposit)}</span>` : ''}
+        </div>
+        <h4 class="font-black text-slate-800 text-sm mt-1">${r.name}</h4>
+        ${r.phone ? `<p class="text-[11px] text-slate-500 font-bold" dir="ltr">${r.phone}</p>` : ''}
+        ${r.notes ? `<p class="text-[11px] text-slate-600 mt-1">📝 ${r.notes}</p>` : ''}
+      </div>
+      <div class="flex items-center gap-1.5 pt-2 border-t border-amber-200/70">
+        <button onclick="startHallFromReservation(${r.id})" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-black py-1.5 rounded-xl text-[11px] transition">▶️ بدء الجلسة الآن</button>
+        <button onclick="deleteHallReservation(${r.id})" class="bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 font-bold px-2.5 py-1.5 rounded-xl text-[11px]">🗑️</button>
+      </div>
+    </div>
+  `).join('') || '<p class="col-span-full text-center text-xs text-slate-400 py-4 font-bold">لا توجد حجوزات مسبقة مسجلة حالياً</p>';
+}
+
 function renderHallTab() {
   document.getElementById('hallRateDisplay').textContent = (appState.settings.hallHourlyRate || 25000).toLocaleString();
+  renderHallReservations();
   const container = document.getElementById('hallBookingContainer');
 
   if (!appState.hallSession) {
@@ -3711,6 +4086,7 @@ function saveNewCustomer() {
   const name = document.getElementById('newCustName').value.trim();
   const rawPhone = document.getElementById('newCustPhone').value.trim();
   const job = document.getElementById('newCustJob').value.trim();
+  const notes = (document.getElementById('newCustNotes')?.value || '').trim();
   if (!name || !rawPhone) return alert('الاسم ورقم الموبايل مطلوبان');
 
   const phone = normalizeSyrianPhone(rawPhone);
@@ -3728,6 +4104,8 @@ function saveNewCustomer() {
     name,
     phone,
     job: job || 'طالب / عام',
+    notes,
+    debtBalance: 0,
     code,
     accumulatedHours: 0,
     totalLifetimeHours: 0,
@@ -3750,6 +4128,7 @@ function openEditCustomerModal(custId) {
   document.getElementById('editCustPhone').value = normalizeSyrianPhone(c.phone || '');
   document.getElementById('editCustCode').value = c.code || '';
   document.getElementById('editCustJob').value = c.job || '';
+  if (document.getElementById('editCustNotes')) document.getElementById('editCustNotes').value = c.notes || '';
   document.getElementById('editCustTotalHours').value = c.totalLifetimeHours || c.accumulatedHours || 0;
   document.getElementById('editCustAccHours').value = c.accumulatedHours || 0;
   document.getElementById('editCustFreeHours').value = c.freeHours || 0;
@@ -3766,6 +4145,7 @@ function saveEditedCustomer() {
   const rawPhone = document.getElementById('editCustPhone').value.trim();
   const code = document.getElementById('editCustCode').value.trim();
   const job = document.getElementById('editCustJob').value.trim();
+  const notes = (document.getElementById('editCustNotes')?.value || '').trim();
   const totalH = Math.max(0, Number(document.getElementById('editCustTotalHours').value) || 0);
   const accH = Math.max(0, Number(document.getElementById('editCustAccHours').value) || 0);
   const freeH = Math.max(0, Number(document.getElementById('editCustFreeHours').value) || 0);
@@ -3786,6 +4166,7 @@ function saveEditedCustomer() {
   c.phone = phone;
   c.code = code;
   c.job = job || 'طالب / عام';
+  c.notes = notes;
   c.totalLifetimeHours = totalH;
   c.accumulatedHours = accH;
   c.freeHours = freeH;
@@ -3881,14 +4262,20 @@ function renderCustomersTable() {
       <tr class="hover:bg-slate-50 ${isVip ? 'bg-amber-50/40' : ''}">
         <td class="p-4 font-mono font-black text-sky-600">${c.code}</td>
         <td class="p-4 font-bold text-slate-800">
-          ${c.name}
-          ${isVip ? '<span class="mr-1.5 inline-block bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full">🏅 VIP</span>' : ''}
+          <div>
+            ${c.name}
+            ${isVip ? '<span class="mr-1.5 inline-block bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full">🏅 VIP</span>' : ''}
+            ${(c.debtBalance || 0) > 0 ? `<span class="mr-1 inline-block bg-rose-100 text-rose-700 border border-rose-300 text-[10px] font-black px-2 py-0.5 rounded-full">📒 ذمة: ${formatMoney(c.debtBalance)}</span>` : ''}
+          </div>
+          ${c.notes ? `<p class="text-[11px] text-amber-700 font-semibold mt-0.5">📝 ${c.notes}</p>` : ''}
         </td>
         <td class="p-4 text-slate-600" dir="ltr">${c.phone}</td>
         <td class="p-4 text-slate-600">${c.job || '—'}</td>
         <td class="p-4 font-bold text-amber-600">${totalH} ساعة</td>
         <td class="p-4 font-extrabold text-purple-600">${c.freeHours || 0} ساعة</td>
         <td class="p-4 flex items-center justify-center gap-1.5 flex-wrap">
+          ${(c.debtBalance || 0) > 0 ? `<button onclick="payCustomerDebt(${c.id})" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-2.5 py-1.5 rounded-lg text-xs shadow-sm">💵 تسديد</button>` : ''}
+          <button onclick="sendCustomerWhatsApp(${c.id})" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold px-2.5 py-1.5 rounded-lg text-xs">💬 واتساب</button>
           <button onclick="showBarcodeCard(${c.id})" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2.5 py-1.5 rounded-lg text-xs">🪪 باركود</button>
           <button onclick="openEditCustomerModal(${c.id})" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold px-2.5 py-1.5 rounded-lg text-xs">✏️ تعديل</button>
           <button onclick="startSessionForCustomer(appState.customers.find(x=>x.id===${c.id}))" class="bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold px-2.5 py-1.5 rounded-lg text-xs">▶️ دخول</button>
@@ -3966,6 +4353,7 @@ function confirmNewSubscription() {
     remainingHours: pkg.hours,
     durationDays: days,
     freePerk: pkg.freePerk || '',
+    billingMode: pkg.billingMode || '',
     expiresAt: expiresAt,
     createdAt: new Date(now).toLocaleDateString('ar-SY')
   });
@@ -3989,8 +4377,10 @@ function renderSubscriptions() {
   document.getElementById('subscriptionsGrid').innerHTML = appState.subscriptions.map(s => {
     const isExpired = s.expiresAt && s.expiresAt < now;
     const daysLeft = s.expiresAt ? Math.max(0, Math.ceil((s.expiresAt - now) / 86400000)) : (s.durationDays || 30);
+    const alertSt = !isExpired ? getSubAlertStatus(s, now) : null;
     return `
-      <div class="bg-white p-5 rounded-2xl border ${isExpired ? 'border-rose-300 bg-rose-50/30' : 'border-slate-200'} shadow-sm space-y-3">
+      <div class="bg-white p-5 rounded-2xl border ${isExpired ? 'border-rose-300 bg-rose-50/30' : (alertSt ? 'border-amber-400 bg-amber-50/30' : 'border-slate-200')} shadow-sm space-y-3">
+        ${alertSt ? `<div class="bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1 rounded-xl text-[11px] font-black">⚠️ قرب انتهاء الباقة (${alertSt.lowHours ? 'أقل من ساعة' : ''}${alertSt.lowHours && alertSt.lowDays ? ' و' : ''}${alertSt.lowDays ? `متبقي ${alertSt.daysLeft} يوم` : ''})</div>` : ''}
         <div class="flex justify-between items-start">
           <div>
             <h4 class="font-black text-slate-800">${s.customerName}</h4>
@@ -4139,6 +4529,7 @@ function renderQuickPos() {
       <div class="text-2xl sm:text-3xl">${p.icon}</div>
       <div class="font-extrabold text-slate-800 text-xs sm:text-sm">${p.name}</div>
       <div class="text-xs font-black text-sky-600">${p.price.toLocaleString()} ل.س</div>
+      ${(p.stock !== undefined && p.stock !== null && p.stock !== '') ? `<div class="text-[10px] font-black ${Number(p.stock) <= 5 ? 'text-rose-600' : 'text-slate-400'}">📦 المتبقي: ${p.stock}</div>` : ''}
     </button>
   `).join('');
 
@@ -4233,6 +4624,7 @@ function checkoutQuickPos() {
     title: summary,
     amount: total
   };
+  posCart.forEach(item => decrementProductStock(item.id));
   appState.daily.unshift(saleRecord);
   lastQuickPosSale = saleRecord;
   posCart = [];
@@ -4427,7 +4819,8 @@ function buildSummaryObjectForIsoDate(targetIso, closedByLabel = null) {
   const hallRev = dayTxs.filter(d => d.type === 'حجز قاعة كاملة').reduce((s, d) => s + (Number(d.amount) || 0), 0);
   const subRev = dayTxs.filter(d => d.type === 'اشتراك باقة').reduce((s, d) => s + (Number(d.amount) || 0), 0);
   const posRev = dayTxs.filter(d => d.type === 'مبيعات كافيه').reduce((s, d) => s + (Number(d.amount) || 0), 0);
-  const grossTotal = studyRev + hallRev + subRev + posRev;
+  const debtRev = dayTxs.filter(d => d.type === 'تسديد ذمة').reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const grossTotal = studyRev + hallRev + subRev + posRev + debtRev;
 
   const allWd = appState.withdrawals || [];
   const dayWdList = allWd.filter(w => w.isoDate === targetIso && w.source === 'today');
@@ -4664,7 +5057,76 @@ function adminDeleteDailyTx(txId) {
   renderAll();
 }
 
+function renderAnalyticsCards() {
+  const peakBox = document.getElementById('analyticsPeakHoursBox');
+  const topBox = document.getElementById('analyticsTopProductsBox');
+  if (!peakBox || !topBox) return;
+
+  const hourCounts = {};
+  const dayCounts = {};
+  const dayNames = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  (appState.daily || []).forEach(d => {
+    if (d.isoDate) {
+      const dt = new Date(d.isoDate + 'T12:00:00');
+      if (!isNaN(dt.getTime())) {
+        const dn = dayNames[dt.getDay()];
+        dayCounts[dn] = (dayCounts[dn] || 0) + 1;
+      }
+    }
+    const m = String(d.date || '').match(/(\d{1,2}):\d{2}.*(ص|م)/);
+    if (m) {
+      const key = `${m[1]} ${m[2]}`;
+      hourCounts[key] = (hourCounts[key] || 0) + 1;
+    }
+  });
+  const topHours = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  const topDays = Object.entries(dayCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  peakBox.innerHTML = (topHours.length === 0 && topDays.length === 0)
+    ? '<p class="text-slate-400 font-bold py-2">ستظهر إحصائيات الذروة تلقائياً مع تراكم الحركات اليومية.</p>'
+    : `
+      <div class="space-y-1.5">
+        <p class="font-extrabold text-slate-600">🕒 أكثر الساعات نشاطاً:</p>
+        <div class="flex flex-wrap gap-1.5">
+          ${topHours.map(([h, c]) => `<span class="bg-sky-50 text-sky-800 border border-sky-200 px-2.5 py-1 rounded-xl font-black">${h} (${c} حركة)</span>`).join('') || '<span class="text-slate-400">—</span>'}
+        </div>
+        <p class="font-extrabold text-slate-600 pt-1">📅 أكثر الأيام ازدحاماً:</p>
+        <div class="flex flex-wrap gap-1.5">
+          ${topDays.map(([dn, c]) => `<span class="bg-indigo-50 text-indigo-800 border border-indigo-200 px-2.5 py-1 rounded-xl font-black">${dn} (${c} حركة)</span>`).join('') || '<span class="text-slate-400">—</span>'}
+        </div>
+      </div>
+    `;
+
+  const prodCounts = {};
+  (appState.daily || []).filter(d => d.type === 'مبيعات كافيه').forEach(d => {
+    String(d.title || '').split('،').map(x => x.trim()).filter(Boolean).forEach(name => {
+      prodCounts[name] = (prodCounts[name] || 0) + 1;
+    });
+  });
+  (appState.sessions || []).forEach(s => {
+    (s.orders || []).forEach(o => {
+      if (o.name) prodCounts[o.name] = (prodCounts[o.name] || 0) + 1;
+    });
+  });
+  const topProds = Object.entries(prodCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const lowStockProds = (appState.products || []).filter(p => p.stock !== undefined && p.stock !== null && p.stock !== '' && Number(p.stock) <= 5);
+  topBox.innerHTML = `
+    <div class="space-y-1.5">
+      <p class="font-extrabold text-slate-600">☕ الأكثر طلباً ومبيعاً:</p>
+      <div class="flex flex-wrap gap-1.5">
+        ${topProds.map(([n, c], i) => `<span class="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-xl font-black">#${i + 1} ${n} (${c})</span>`).join('') || '<span class="text-slate-400 font-bold">لا توجد مبيعات مسجلة بعد</span>'}
+      </div>
+      ${lowStockProds.length > 0 ? `
+        <p class="font-extrabold text-rose-600 pt-1">📦 تنبيه نقص مخزون (5 أو أقل):</p>
+        <div class="flex flex-wrap gap-1.5">
+          ${lowStockProds.map(p => `<span class="bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-xl font-black">${p.icon} ${p.name}: متبقي ${p.stock}</span>`).join('')}
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
 function renderReportsTab() {
+  renderAnalyticsCards();
   const isFullAdmin = currentLoggedUser && currentLoggedUser.role === 'admin';
   const archiveGrid = document.getElementById('closedDaysArchiveGrid');
   const closed = appState.closedDays || [];
@@ -4808,6 +5270,7 @@ function renderSettingsTab() {
       <div>
         <h4 class="font-extrabold text-slate-800 text-sm">${p.name}</h4>
         <p class="text-xs text-sky-600 font-bold">${p.hours} ساعة • ${p.durationDays || 30} يوم • ${p.price.toLocaleString()} ل.س</p>
+        <p class="text-[11px] text-indigo-700 font-bold mt-0.5">${p.billingMode === 'hour65' ? '⏳ خصم ساعة ساعة (65 د)' : p.billingMode === 'minute' ? '⏱️ خصم بالدقيقة الفعلية' : '⚙️ حسب الإعداد العام'}</p>
         ${p.freePerk ? `<p class="text-[11px] text-purple-600 font-extrabold mt-0.5">🎁 ${p.freePerk}</p>` : ''}
       </div>
       <button onclick="deletePackageTemplate(${p.id})" class="text-rose-500 hover:text-rose-700 font-bold text-xs">حذف</button>
@@ -4820,7 +5283,7 @@ function renderSettingsTab() {
         <div>
           <span class="inline-block bg-slate-200 text-slate-700 font-mono text-[10px] font-black px-1.5 py-0.5 rounded ml-1">#${idx + 1}</span>
           <span class="font-bold text-sm text-slate-800">${p.icon} ${p.name}</span>
-          <p class="text-xs text-emerald-600 font-extrabold mt-0.5">${p.price.toLocaleString()} ل.س</p>
+          <p class="text-xs text-emerald-600 font-extrabold mt-0.5">${p.price.toLocaleString()} ل.س ${(p.stock !== undefined && p.stock !== null && p.stock !== '') ? `<span class="mr-1 px-1.5 py-0.5 rounded text-[10px] ${Number(p.stock) <= 5 ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'}">📦 ${p.stock}</span>` : ''}</p>
         </div>
         <div class="flex items-center gap-1 shrink-0">
           <button onclick="moveProductItem(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} title="تقديم للأعلى / اليمين"
@@ -4875,14 +5338,16 @@ function addPackageTemplate() {
   const durationDays = Number(document.getElementById('pkgDaysInput').value) || 30;
   const price = Number(document.getElementById('pkgPriceInput').value);
   const freePerk = document.getElementById('pkgFreePerkInput').value.trim();
+  const billingMode = document.getElementById('pkgBillingModeInput')?.value || '';
   if (!name || hours <= 0 || price <= 0) return alert('أدخل اسم الباقة وعدد الساعات والسعر');
 
-  appState.packages.push({ id: Date.now(), name, hours, durationDays, price, freePerk });
+  appState.packages.push({ id: Date.now(), name, hours, durationDays, price, freePerk, billingMode });
   document.getElementById('pkgNameInput').value = '';
   document.getElementById('pkgHoursInput').value = '';
   document.getElementById('pkgDaysInput').value = '';
   document.getElementById('pkgPriceInput').value = '';
   document.getElementById('pkgFreePerkInput').value = '';
+  if (document.getElementById('pkgBillingModeInput')) document.getElementById('pkgBillingModeInput').value = '';
   pushStateToCloud();
   renderSettingsTab();
 }
@@ -4899,10 +5364,13 @@ function addProductItem() {
   const name = document.getElementById('prodNameInput').value.trim();
   const price = Number(document.getElementById('prodPriceInput').value);
   const icon = document.getElementById('prodIconInput').value;
+  const rawStock = (document.getElementById('prodStockInput')?.value || '').trim();
+  const stock = rawStock === '' ? null : Math.max(0, Number(rawStock) || 0);
   if (!name || price <= 0) return alert('أدخل اسم المنتج وسعره');
-  appState.products.push({ id: Date.now(), name, price, icon });
+  appState.products.push({ id: Date.now(), name, price, icon, stock });
   document.getElementById('prodNameInput').value = '';
   document.getElementById('prodPriceInput').value = '';
+  if (document.getElementById('prodStockInput')) document.getElementById('prodStockInput').value = '';
   pushStateToCloud();
   renderSettingsTab();
 }
@@ -4927,6 +5395,7 @@ function openEditProductModal(id) {
   document.getElementById('editProdName').value = p.name;
   document.getElementById('editProdPrice').value = p.price;
   document.getElementById('editProdIcon').value = p.icon || '☕';
+  if (document.getElementById('editProdStock')) document.getElementById('editProdStock').value = (p.stock !== undefined && p.stock !== null) ? p.stock : '';
   openModal('editProductModal');
 }
 
@@ -4942,6 +5411,8 @@ function saveEditedProduct() {
   p.name = name;
   p.price = price;
   p.icon = icon;
+  const rawStock = (document.getElementById('editProdStock')?.value || '').trim();
+  p.stock = rawStock === '' ? null : Math.max(0, Number(rawStock) || 0);
   closeModal('editProductModal');
   SoundFX.success();
   pushStateToCloud();
@@ -5049,8 +5520,38 @@ function renderLiveSessions() {
     return;
   }
 
-  const ongoingList = appState.sessions.filter(s => !s.checkedOut);
-  const finishedOrDeletedList = appState.sessions.filter(s => s.checkedOut);
+  const searchQ = (document.getElementById('liveSessionSearchInput')?.value || '').trim().toLowerCase();
+  const filterMode = document.getElementById('liveSessionFilterSelect')?.value || 'all';
+  const sortMode = document.getElementById('liveSessionSortSelect')?.value || 'newest';
+
+  const matchesSearch = (s) => {
+    if (!searchQ) return true;
+    return (s.customerName || '').toLowerCase().includes(searchQ) ||
+      String(s.customerCode || '').toLowerCase().includes(searchQ) ||
+      (s.seat || '').toLowerCase().includes(searchQ);
+  };
+
+  let ongoingList = appState.sessions.filter(s => !s.checkedOut && matchesSearch(s));
+  let finishedOrDeletedList = appState.sessions.filter(s => s.checkedOut && matchesSearch(s));
+
+  if (filterMode === 'active') finishedOrDeletedList = [];
+  else if (filterMode === 'sub') {
+    ongoingList = ongoingList.filter(s => !!getActiveCustomerSub(s.customerId, now));
+    finishedOrDeletedList = [];
+  } else if (filterMode === 'paused') {
+    ongoingList = ongoingList.filter(s => !!s.isPaused);
+    finishedOrDeletedList = [];
+  } else if (filterMode === 'checkedout') {
+    ongoingList = [];
+  }
+
+  if (sortMode === 'oldest') {
+    ongoingList.sort((a, b) => (a.startTime || 0) - (b.startTime || 0));
+  } else if (sortMode === 'seat') {
+    ongoingList.sort((a, b) => (a.seat || 'ي').localeCompare(b.seat || 'ي', 'ar'));
+  } else {
+    ongoingList.sort((a, b) => (b.startTime || 0) - (a.startTime || 0));
+  }
 
   const renderCardHtml = (s) => {
     // Deleted / Cancelled by mistake card (stays at bottom with clear "زبون محذوف" label)
@@ -5114,9 +5615,12 @@ function renderLiveSessions() {
             <span class="text-rose-200 font-bold">المدة: <b class="font-mono text-white">${s.finalDuration || '--:--'}</b></span>
             <span class="font-black text-rose-100">المقبوض: ${formatMoney(s.finalAmount)}</span>
           </div>
-          <div class="flex justify-between items-center text-[11px] text-rose-700 font-bold">
-            <span>خروج: ${s.endTime ? formatTime12(s.endTime, false) : ''}</span>
-            <span>انقر لبدء جلسة جديدة ⬅️</span>
+          <div class="flex justify-between items-center text-[11px] text-rose-700 font-bold gap-2">
+            <span>خروج: ${s.endTime ? formatTime12(s.endTime, false) : ''}${s.isDebt ? ' • 📒 ذمة' : ''}</span>
+            <div class="flex items-center gap-1.5">
+              ${s.customerId ? `<button onclick="sendSessionWhatsApp(${s.id}, event)" class="bg-emerald-500 hover:bg-emerald-600 text-white px-2 py-0.5 rounded-lg text-[10px] font-black">💬 واتساب</button>` : ''}
+              <span>جلسة جديدة ⬅️</span>
+            </div>
           </div>
           ${adminActionsHtml}
         </div>
@@ -5125,27 +5629,40 @@ function renderLiveSessions() {
 
     // Active ongoing session card (always at TOP)
     const bill = getSessionBillingInfo(s, now);
+    const custObj = appState.customers.find(c => c.id === s.customerId);
+    const subAlert = bill.isSub ? getSubAlertStatus(bill.sub, now) : null;
     const subBadgeHtml = bill.isSub ? `
-      <div id="subinfo-${s.id}" class="bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-xl px-3 py-1.5 text-[11px] font-extrabold flex flex-wrap items-center justify-between gap-1">
-        <span>🎫 ${bill.sub.packageName} (فيها: ${bill.sub.remainingHours} س)</span>
+      <div id="subinfo-${s.id}" class="${subAlert ? 'bg-amber-50 border-amber-300 text-amber-900' : 'bg-indigo-50 border-indigo-200 text-indigo-800'} border rounded-xl px-3 py-1.5 text-[11px] font-extrabold flex flex-wrap items-center justify-between gap-1">
+        <span>${subAlert ? '⚠️ ' : '🎫 '}${bill.sub.packageName} (فيها: ${bill.sub.remainingHours} س)</span>
         <span class="text-rose-600">ينسحب: ${bill.deductHours} س | يبقى: ${bill.afterHours} س</span>
       </div>
     ` : '';
+    const extraMetaHtml = (custObj && (custObj.notes || (custObj.debtBalance || 0) > 0)) ? `
+      <div class="flex flex-wrap gap-1.5 text-[10px] font-black">
+        ${(custObj.debtBalance || 0) > 0 ? `<span class="bg-rose-100 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-lg">📒 ذمة: ${formatMoney(custObj.debtBalance)}</span>` : ''}
+        ${custObj.notes ? `<span class="bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-lg">📝 ${custObj.notes}</span>` : ''}
+      </div>
+    ` : '';
     return `
-      <div onclick="openSessionDetail(${s.id})" class="cursor-pointer bg-white p-5 rounded-3xl border-2 ${bill.isSub ? 'border-indigo-300 hover:border-indigo-500' : 'border-sky-200 hover:border-sky-400'} shadow-sm card-hover space-y-3">
+      <div onclick="openSessionDetail(${s.id})" class="cursor-pointer ${s.isPaused ? 'bg-amber-50/50 border-amber-400' : (bill.isSub ? 'bg-white border-indigo-300 hover:border-indigo-500' : 'bg-white border-sky-200 hover:border-sky-400')} p-5 rounded-3xl border-2 shadow-sm card-hover space-y-3">
         <div class="flex justify-between items-start gap-2">
           <div>
-            <span class="text-[11px] font-mono font-extrabold px-2.5 py-0.5 rounded-full ${bill.isSub ? 'bg-indigo-50 text-indigo-700' : 'bg-sky-50 text-sky-600'}">${s.customerCode}</span>
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="text-[11px] font-mono font-extrabold px-2.5 py-0.5 rounded-full ${bill.isSub ? 'bg-indigo-50 text-indigo-700' : 'bg-sky-50 text-sky-600'}">${s.customerCode}</span>
+              ${s.seat ? `<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">🪑 ${s.seat}</span>` : ''}
+              ${s.isPaused ? `<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-200 text-amber-900">⏸️ استراحة</span>` : ''}
+            </div>
             <h3 class="text-lg font-black text-slate-800 mt-1">${s.customerName}</h3>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
             <span id="cost-${s.id}" class="${bill.isSub ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'} text-xs font-extrabold px-3 py-1 rounded-xl border">
               ${bill.isSub ? (bill.ordersTotal > 0 ? formatMoney(bill.ordersTotal) + ' (طلبات)' : 'من الباقة 🎫') : formatMoney(bill.total)}
             </span>
+            <button onclick="toggleSessionPause(event, ${s.id})" title="${s.isPaused ? 'استئناف العداد' : 'إيقاف مؤقت (استراحة)'}" class="${s.isPaused ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200'} border font-bold w-7 h-7 rounded-xl text-xs flex items-center justify-center">${s.isPaused ? '▶️' : '⏸️'}</button>
             <button onclick="deleteActiveSessionMistake(event, ${s.id})" title="حذف الجلسة (دخلت بالخطأ)" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold w-7 h-7 rounded-xl text-xs flex items-center justify-center transition">🗑️</button>
           </div>
         </div>
-        ${subBadgeHtml}
+        ${subBadgeHtml}${extraMetaHtml}
         <div class="bg-slate-800 text-white rounded-2xl p-3 flex items-center justify-between">
           <span class="text-xs text-slate-300 font-bold">الوقت المنقضي:</span>
           <span id="timer-${s.id}" class="text-xl font-black font-mono text-sky-400">${formatDuration(bill.elapsed)}</span>
@@ -5184,11 +5701,11 @@ function addShopWithdrawal() {
   const title = document.getElementById('wdTitleInput').value.trim();
 
   if (amount <= 0) {
-    SoundFX.error();
+    SoundFX.scanError();
     return alert('يرجى إدخال مبلغ صحيح أكبر من صفر.');
   }
   if (!title) {
-    SoundFX.error();
+    SoundFX.scanError();
     return alert('يرجى كتابة البيان أو سبب السحب (مثلاً: معاش، فاتورة كهرباء).');
   }
 
@@ -5237,11 +5754,11 @@ function saveEditedWithdrawal() {
   const title = document.getElementById('editWdTitle').value.trim();
 
   if (amount <= 0) {
-    SoundFX.error();
+    SoundFX.scanError();
     return alert('يرجى إدخال مبلغ صحيح أكبر من صفر.');
   }
   if (!title) {
-    SoundFX.error();
+    SoundFX.scanError();
     return alert('يرجى كتابة البيان أو تفاصيل السحب.');
   }
 

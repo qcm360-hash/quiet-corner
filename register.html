@@ -789,10 +789,8 @@ async function loginExistingCustomerByPhone() {
     buildCloudData(member);
     localStorage.setItem('qc_saved_customer_code', currentCustomer.code);
     showMemberCard();
-    if (pendingQrAutoCheckIn) {
-      pendingQrAutoCheckIn = false;
-      await triggerAutoSelfCheckIn(currentCustomer, currentMember);
-    }
+    pendingQrAutoCheckIn = false;
+    await triggerAutoSelfCheckIn(currentCustomer, currentMember, true);
   } catch (e) {
     alert('تعذر الاتصال بالسحابة. تأكد من اتصالك بالإنترنت.');
   } finally {
@@ -868,10 +866,8 @@ async function submitCustomerRegistration() {
     buildCloudData(rec);
     localStorage.setItem('qc_saved_customer_code', currentCustomer.code);
     showMemberCard();
-    if (pendingQrAutoCheckIn) {
-      pendingQrAutoCheckIn = false;
-      await triggerAutoSelfCheckIn(currentCustomer, currentMember);
-    }
+    pendingQrAutoCheckIn = false;
+    await triggerAutoSelfCheckIn(currentCustomer, currentMember, true);
   } catch (err) {
     alert('تعذر الاتصال بالسحابة. تأكد من اتصالك بالإنترنت.');
   } finally {
@@ -912,7 +908,7 @@ function showMemberCard() {
   refreshMemberDashboard();
 }
 
-async function triggerAutoSelfCheckIn(cust, memberObj) {
+async function triggerAutoSelfCheckIn(cust, memberObj, forceSend = false) {
   if (!cust || !cust.code) return;
   const banner = document.getElementById('qrCheckInBanner');
   const bTitle = document.getElementById('qrCheckInBannerTitle');
@@ -930,7 +926,7 @@ async function triggerAutoSelfCheckIn(cust, memberObj) {
 
   const guardKey = 'qc_last_qr_checkin_' + cust.code;
   const lastTs = Number(sessionStorage.getItem(guardKey) || 0);
-  if (Date.now() - lastTs < 45000) return;
+  if (!forceSend && Date.now() - lastTs < 10000) return;
 
   try {
     const res = await fetch(`${FIREBASE_DB_URL}/inbox/checkin.json`, {
