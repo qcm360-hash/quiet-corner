@@ -2271,14 +2271,17 @@ async function importInbox() {
         processQrCheckinItem(x);
         return;
       }
-      if (!x.name) return;
+      const cleanCode = String(x.code).trim().toUpperCase().replace(/^QC-/, '');
       const phone = String(x.phone || '').replace(/\s+/g, '');
-      if ((appState.customers || []).some(c => String(c.phone || '').replace(/\s+/g, '') === phone)) return;
-      let code = String(x.code);
-      if ((appState.customers || []).some(c => String(c.code) === code)) {
-        del['members/' + pubCodeKey(code)] = null;
-        code = generateSimpleNumericCode(appState.customers);
+      const existingByCode = (appState.customers || []).find(c => String(c.code || '').trim().toUpperCase().replace(/^QC-/, '') === cleanCode);
+      const existingByPhone = phone && !phone.includes('•') ? (appState.customers || []).find(c => String(c.phone || '').replace(/\s+/g, '') === phone) : null;
+      const existingCust = existingByCode || existingByPhone;
+      if (existingCust) {
+        processQrCheckinItem({ code: existingCust.code, ts: x.ts });
+        return;
       }
+      if (!x.name) return;
+      let code = String(x.code);
       const newCustObj = { id: Number(x.id) || Date.now(), name: stripTags(x.name, 60), phone, job: stripTags(x.job, 80), code, accumulatedHours: 0, totalLifetimeHours: 0, freeHours: 0 };
       appState.customers.push(newCustObj);
       changed = true;
@@ -5003,12 +5006,35 @@ function printQrPoster() {
   setTimeout(() => { win.print(); win.close(); }, 500);
 }
 
+async function captureElementWithQrFix(el, qrBoxId) {
+  const qrBox = document.getElementById(qrBoxId);
+  const qrCanvas = qrBox ? qrBox.querySelector('canvas') : null;
+  const qrImg = qrBox ? qrBox.querySelector('img') : null;
+  const prevCanvasDisplay = qrCanvas ? qrCanvas.style.display : null;
+  const prevImgDisplay = qrImg ? qrImg.style.display : null;
+  try {
+    // Force qrcodejs's native <canvas> visible during html2canvas capture so it NEVER exports blank
+    if (qrCanvas) {
+      qrCanvas.style.display = 'block';
+      if (qrImg) qrImg.style.display = 'none';
+    }
+    return await html2canvas(el, { scale: 3, backgroundColor: '#ffffff', useCORS: true });
+  } finally {
+    if (qrCanvas) qrCanvas.style.display = prevCanvasDisplay;
+    if (qrImg) qrImg.style.display = prevImgDisplay;
+  }
+}
+
 async function downloadQrPosterImage() {
   if (canWrite(false)) pushStateToCloud();
+  const qrBox = document.getElementById('posterQrBox');
+  if (qrBox && !qrBox.querySelector('canvas') && !qrBox.querySelector('img')) {
+    updatePosterQr();
+  }
   const el = document.getElementById('printableQrPoster');
   if (!el) return;
   try {
-    const canvas = await html2canvas(el, { scale: 3, backgroundColor: '#ffffff', useCORS: true });
+    const canvas = await captureElementWithQrFix(el, 'posterQrBox');
     const a = document.createElement('a');
     a.download = 'QuietCorner_QR_Poster.png';
     a.href = canvas.toDataURL('image/png');
@@ -5023,7 +5049,7 @@ async function downloadMemberCardImage() {
   const el = document.getElementById('printableMemberCard');
   if (!el) return;
   try {
-    const canvas = await html2canvas(el, { scale: 3, backgroundColor: '#ffffff', useCORS: true });
+    const canvas = await captureElementWithQrFix(el, 'cardQrBox');
     const codeTxt = (document.getElementById('cardCustCodeBadge')?.textContent || 'member').replace(/[^0-9a-zA-Z_-]/g, '');
     const a = document.createElement('a');
     a.download = `QuietCorner_Card_${codeTxt}.png`;

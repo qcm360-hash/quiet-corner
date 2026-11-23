@@ -1030,15 +1030,19 @@ async function triggerAutoSelfCheckIn(cust, memberObj, forceSend = false) {
 
   const guardKey = 'qc_last_qr_checkin_' + cust.code;
   const lastTs = Number(sessionStorage.getItem(guardKey) || 0);
-  if (!forceSend && Date.now() - lastTs < 10000) return;
+  if (!forceSend && Date.now() - lastTs < 3000) return;
 
   try {
-    const res = await fetch(`${FIREBASE_DB_URL}/inbox/checkin.json`, {
+    // Post to inbox/reg using the EXACT same 6-field schema accepted by Firebase rules
+    const res = await fetch(`${FIREBASE_DB_URL}/inbox/reg.json`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        id: Number(cust.id) || Math.floor(getTrueNow()),
+        name: cleanTxt(cust.name, 60) || 'عضو',
+        phone: cleanTxt(cust.phone, 20) || '0900000000',
+        job: cleanTxt(cust.job, 80) || 'عضو',
         code: String(cust.code),
-        name: cust.name || '',
         ts: Math.floor(getTrueNow())
       })
     });
