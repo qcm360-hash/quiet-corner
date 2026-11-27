@@ -190,14 +190,17 @@
         </div>
       </div>
 
-      <!-- VIP Milestone Achievement Banner (Shown if customer exceeded total hours threshold) -->
-      <div id="vipMilestoneBanner" class="hidden bg-gradient-to-l from-amber-500 to-yellow-500 text-white rounded-3xl p-4 shadow-lg border border-amber-300 flex items-center gap-3">
-        <div class="text-3xl bg-white/20 w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">🏅</div>
-        <div>
-          <span class="text-[10px] font-black bg-white/25 px-2.5 py-0.5 rounded-full">إنجاز مميز في الركن الهادئ!</span>
-          <h3 id="vipMilestoneTitle" class="text-sm font-black mt-1">تهانينا! لقد تخطيت 20 ساعة دراسة</h3>
-          <p id="vipMilestoneReward" class="text-xs text-amber-50 font-bold mt-0.5">---</p>
+      <!-- Multi-Tier VIP Status Card (One-Time Claimable Rewards per Tier) -->
+      <div id="vipMilestoneBanner" class="hidden bg-gradient-to-l from-amber-500 via-amber-500 to-yellow-500 text-white rounded-3xl p-4 shadow-lg border border-amber-300 space-y-2.5">
+        <div class="flex items-center gap-3">
+          <div class="text-3xl bg-white/20 w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">👑</div>
+          <div class="min-w-0">
+            <span class="text-[10px] font-black bg-white/25 px-2.5 py-0.5 rounded-full">عضوية VIP في الركن الهادئ</span>
+            <h3 id="vipMilestoneTitle" class="text-sm font-black mt-1">أنت الآن عضو مميز VIP!</h3>
+            <p id="vipMilestoneReward" class="text-[11px] text-amber-50 font-bold mt-0.5">---</p>
+          </div>
         </div>
+        <div id="vipTiersCustomerList" class="space-y-1.5 pt-1"></div>
       </div>
 
       <!-- Digital Barcode & QR Card -->
@@ -1173,14 +1176,42 @@ function refreshMemberDashboard() {
     document.getElementById('dispCustMeta').textContent = `${currentCustomer.job || ''} • ${currentCustomer.phone}`;
   }
 
-  // 0. Check Milestone VIP Achievement
-  const totalH = currentCustomer.totalLifetimeHours || currentCustomer.accumulatedHours || 0;
+  // 0. Check Multi-Tier VIP Achievements (One-time use per tier)
+  const totalH = Number(currentCustomer.totalLifetimeHours || currentCustomer.accumulatedHours || 0);
   const ms = cloudData.milestone;
+  const vipEnabled = !ms || ms.active !== false;
+  let tiers = Array.isArray(cloudData.vipTiers) && cloudData.vipTiers.length > 0
+    ? cloudData.vipTiers.filter(t => t.active !== false).slice().sort((a, b) => Number(a.hours) - Number(b.hours))
+    : (ms && ms.active ? [{ id: 'legacy', name: 'عضو VIP 🏅', hours: Number(ms.hours || 20), reward: ms.reward || '' }] : []);
+
   const vipBanner = document.getElementById('vipMilestoneBanner');
-  if (ms && ms.active && totalH >= Number(ms.hours || 20)) {
+  const vipListEl = document.getElementById('vipTiersCustomerList');
+  const claimedIds = Array.isArray(currentCustomer.claimedVipTierIds) ? currentCustomer.claimedVipTierIds : [];
+  const achievedTiers = vipEnabled ? tiers.filter(t => totalH >= Number(t.hours)) : [];
+  const nextTier = vipEnabled ? tiers.find(t => totalH < Number(t.hours)) : null;
+
+  if (achievedTiers.length > 0) {
+    const highest = achievedTiers[achievedTiers.length - 1];
     vipBanner.classList.remove('hidden');
-    document.getElementById('vipMilestoneTitle').textContent = `تهانينا! لقد تخطيت ${ms.hours} ساعة دراسة (رصيدك ${totalH} ساعة)`;
-    document.getElementById('vipMilestoneReward').textContent = `مكافأتك المستحقة: ${ms.reward}`;
+    document.getElementById('vipMilestoneTitle').textContent = `تهانينا! أنت الآن ${highest.name} (إجمالي ساعاتك: ${totalH} ساعة)`;
+    document.getElementById('vipMilestoneReward').textContent = nextTier
+      ? `متبقي ${(Number(nextTier.hours) - totalH).toFixed(1)} ساعة للوصول إلى فئة ${nextTier.name}`
+      : 'لقد وصلت لأعلى فئة VIP في مركز الركن الهادئ!';
+    if (vipListEl) {
+      vipListEl.innerHTML = achievedTiers.map(t => {
+        const isUsed = claimedIds.some(id => String(id) === String(t.id));
+        return `
+          <div class="bg-white/95 text-slate-800 rounded-2xl px-3 py-2 flex items-center justify-between gap-2 text-xs shadow-sm">
+            <div class="min-w-0">
+              <div class="font-black text-amber-900">${escapeHtml(t.name)} <span class="text-[10px] text-slate-400">(${t.hours} سا)</span></div>
+              <div class="text-[11px] font-bold text-slate-600">${escapeHtml(t.reward)}</div>
+            </div>
+            <span class="shrink-0 text-[10px] font-black px-2.5 py-1 rounded-full ${isUsed ? 'bg-slate-200 text-slate-500' : 'bg-emerald-100 text-emerald-700 border border-emerald-300'}">
+              ${isUsed ? '✅ تم الاستخدام' : '🎁 متاح لمرة واحدة'}
+            </span>
+          </div>`;
+      }).join('');
+    }
   } else {
     vipBanner.classList.add('hidden');
   }
@@ -1199,10 +1230,12 @@ function refreshMemberDashboard() {
     pickerList.innerHTML = activeOffers.map(o => {
       const isSel = activeOffer && String(o.id) === String(activeOffer.id);
       const rewardTxt = `${o.freeHours > 0 ? o.freeHours + ' سا مجاناً' : ''}${o.freeHours > 0 && o.freePerk ? ' + ' : ''}${o.freePerk ? escapeHtml(o.freePerk) : ''}`;
+      const scopeBadge = o.scope === 'single_session' ? '⏱️ ضمن الجلسة' : '🗂️ تراكمي';
       return `
         <button type="button" onclick="selectCustomerOffer(${o.id})"
-          class="w-full text-right px-3 py-2 rounded-xl border text-xs font-extrabold flex items-center justify-between transition ${isSel ? 'bg-sky-50 border-sky-400 text-sky-900 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}">
+          class="w-full text-right px-3 py-2 rounded-xl border text-xs font-extrabold flex items-center justify-between gap-2 transition ${isSel ? 'bg-sky-50 border-sky-400 text-sky-900 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}">
           <span>${isSel ? '✅' : '⚪'} ${escapeHtml(o.title)} (${o.reqHours} سا ⬅️ ${rewardTxt})</span>
+          <span class="text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${o.scope === 'single_session' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}">${scopeBadge}</span>
         </button>`;
     }).join('');
   } else if (pickerBox) {
@@ -1210,11 +1243,18 @@ function refreshMemberDashboard() {
   }
 
   if (activeOffer) {
+    const isSingle = activeOffer.scope === 'single_session';
+    const activeSessForOffer = (cloudData.sessions || []).find(s =>
+      !s.checkedOut && (s.customerId === currentCustomer.id || s.customerCode === currentCustomer.code)
+    );
+    const currentProgressHours = isSingle
+      ? (activeSessForOffer ? +(Math.max(0, getTrueNow() - activeSessForOffer.startTime) / 3600000).toFixed(2) : 0)
+      : acc;
     const rewardTxt = `${activeOffer.freeHours > 0 ? activeOffer.freeHours + ' مجاناً' : ''}${activeOffer.freeHours > 0 && activeOffer.freePerk ? ' + ' : ''}${activeOffer.freePerk ? activeOffer.freePerk : ''}`;
     document.getElementById('loyaltyProgressBox').classList.remove('hidden');
-    document.getElementById('loyaltyOfferLabel').textContent = `${activeOffer.title} (كل ${activeOffer.reqHours} سا = ${rewardTxt})`;
-    document.getElementById('loyaltyHoursFraction').textContent = `${acc} / ${activeOffer.reqHours} ساعات`;
-    const pct = Math.min(100, Math.round((acc / activeOffer.reqHours) * 100));
+    document.getElementById('loyaltyOfferLabel').textContent = `${activeOffer.title} [${isSingle ? 'ضمن الجلسة الواحدة' : 'تراكمي'}] (كل ${activeOffer.reqHours} سا = ${rewardTxt})`;
+    document.getElementById('loyaltyHoursFraction').textContent = `${currentProgressHours} / ${activeOffer.reqHours} ساعات`;
+    const pct = Math.min(100, Math.round((currentProgressHours / activeOffer.reqHours) * 100));
     document.getElementById('loyaltyProgressBar').style.width = `${pct}%`;
   } else {
     document.getElementById('loyaltyProgressBox').classList.add('hidden');
@@ -1305,8 +1345,48 @@ function updateCustomerLiveClock(session) {
       remEl.textContent = `رصيد الباقة: ${activeSub.remainingHours} س | ينسحب الآن: ${deduct} س | يبقى: ${after} س (${daysLeft} يوم)`;
     }
   } else {
-    const timeCost = calculateTimeCost(elapsed, hourlyRate);
-    document.getElementById('custLiveTotal').textContent = `${(timeCost + ordersSum).toLocaleString()} ل.س`;
+    let remainingMs = elapsed;
+    let deductedNotes = [];
+    // 1) Auto-deduct unclaimed VIP Tier free hours
+    const msCfg = cloudData.milestone;
+    if (!msCfg || msCfg.active !== false) {
+      const totalH = Number(currentCustomer.totalLifetimeHours || currentCustomer.accumulatedHours || 0);
+      const claimedIds = Array.isArray(currentCustomer.claimedVipTierIds) ? currentCustomer.claimedVipTierIds : [];
+      const tiers = (cloudData.vipTiers || []).filter(t => t.active !== false).slice().sort((a, b) => Number(a.hours) - Number(b.hours));
+      const unclaimed = tiers.find(t => totalH >= Number(t.hours) && !claimedIds.some(id => String(id) === String(t.id)) && Number(t.freeHours || 0) > 0);
+      if (unclaimed) {
+        const vipFreeMs = Math.min(remainingMs, Number(unclaimed.freeHours) * 3600000);
+        if (vipFreeMs > 0) {
+          remainingMs -= vipFreeMs;
+          deductedNotes.push(`👑 ${unclaimed.name}`);
+        }
+      }
+    }
+    // 2) Auto-deduct active Loyalty Offer free hours
+    const activeOffers = (cloudData.loyaltyOffers || []).filter(o => o.active);
+    const localChosenId = localStorage.getItem('qc_chosen_offer_id') || currentCustomer.selectedOfferId;
+    const activeOffer = activeOffers.find(o => String(o.id) === String(localChosenId)) || activeOffers[0];
+    if (activeOffer && Number(activeOffer.reqHours) > 0 && Number(activeOffer.freeHours) > 0 && remainingMs > 0) {
+      const reqMs = Number(activeOffer.reqHours) * 3600000;
+      const freeCap = Number(activeOffer.freeHours) * 3600000;
+      let offerFreeMs = 0;
+      if (activeOffer.scope === 'single_session') {
+        const cycleMs = reqMs + freeCap;
+        const paidPart = Math.floor(remainingMs / cycleMs) * reqMs + Math.min(remainingMs % cycleMs, reqMs);
+        offerFreeMs = Math.max(0, remainingMs - paidPart);
+      } else {
+        const neededMs = Math.max(0, reqMs - Number(currentCustomer.accumulatedHours || 0) * 3600000);
+        if (remainingMs > neededMs) offerFreeMs = Math.min(remainingMs - neededMs, freeCap);
+      }
+      if (offerFreeMs > 0) {
+        remainingMs -= offerFreeMs;
+        deductedNotes.push(`🎁 ${activeOffer.title}`);
+      }
+    }
+    const timeCost = remainingMs <= 0 ? 0 : calculateTimeCost(remainingMs, hourlyRate);
+    document.getElementById('custLiveTotal').textContent = deductedNotes.length > 0
+      ? `${(timeCost + ordersSum).toLocaleString()} ل.س (${deductedNotes.join(' + ')})`
+      : `${(timeCost + ordersSum).toLocaleString()} ل.س`;
   }
 }
 

@@ -461,34 +461,43 @@
           <p class="text-sm text-slate-500">تحكم بعروض الساعات المجانية وبمكافأة الزبون الذي يتخطى عدداً معيناً من ساعات الدراسة</p>
         </div>
 
-        <!-- Milestone Reward Settings Card -->
-        <div class="bg-gradient-to-l from-amber-50 to-yellow-50 p-5 rounded-2xl border border-amber-200 shadow-sm space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="font-black text-amber-900 text-base flex items-center gap-2"><span>🏅</span> مكافأة تخطي حد ساعات إجمالي (للزوار المميزين)</h3>
-            <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-extrabold text-amber-900">
-              <input id="milestoneActiveCheck" type="checkbox" class="w-4 h-4 accent-amber-600">
-              <span>تفعيل المكافأة</span>
+        <!-- Multi-Tier VIP Memberships Card (20h, 50h, 100h... One-Time Claimable Rewards) -->
+        <div class="bg-gradient-to-l from-amber-50 to-yellow-50 p-5 rounded-2xl border border-amber-200 shadow-sm space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="font-black text-amber-900 text-base flex items-center gap-2"><span>👑</span> فئات عضوية الـ VIP ومكافآت التميز (استخدام لمرة واحدة لكل فئة)</h3>
+              <p class="text-xs text-amber-800 mt-0.5">أضف أكثر من فئة VIP (مثلاً: 20 ساعة، 50 ساعة، 100 ساعة) — يظهر للزبون بصفحته أنه أصبح VIP ويمكنه استخدام مكافأة كل فئة <b>لمرة واحدة فقط</b></p>
+            </div>
+            <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-extrabold text-amber-900 bg-white/80 px-3 py-1.5 rounded-xl border border-amber-200">
+              <input id="milestoneActiveCheck" type="checkbox" onchange="toggleVipSystemGlobal(this.checked)" class="w-4 h-4 accent-amber-600">
+              <span>تفعيل نظام الـ VIP</span>
             </label>
           </div>
-          <p class="text-xs text-amber-800">عندما يتخطى مجموع ساعات دراسة الزبون الحد المحدد، يظهر له وسام ومكافأة خاصة في صفحته وعند الكاشير:</p>
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <input id="milestoneHoursInput" type="number" min="1" placeholder="الحد المطلوب (مثلاً: 20 ساعة)" class="px-3.5 py-2.5 bg-white border border-amber-300 rounded-xl text-sm font-bold">
-            <input id="milestoneRewardInput" type="text" placeholder="المكافأة (مثلاً: عضوية VIP + مشروب وساعة مجاناً)" class="md:col-span-2 px-3.5 py-2.5 bg-white border border-amber-300 rounded-xl text-sm font-bold">
-            <button onclick="saveMilestoneSettings()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow transition">
-              حفظ شرط المكافأة
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5">
+            <input id="vipTierNameInput" type="text" placeholder="اسم الفئة (مثلاً: VIP برونزي)" class="px-3 py-2.5 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-bold">
+            <input id="vipTierHoursInput" type="number" min="1" placeholder="الساعات المطلوبة (20 أو 50)" class="px-3 py-2.5 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-bold">
+            <input id="vipTierFreeHoursInput" type="number" step="0.5" min="0" placeholder="ساعات تُخصم تلقائياً (مثلاً 1)" class="px-3 py-2.5 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-bold">
+            <input id="vipTierRewardInput" type="text" placeholder="وصف المكافأة (مثلاً: مشروب + ساعة مجاناً)" class="lg:col-span-2 px-3 py-2.5 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-bold">
+            <button onclick="addVipTier()" class="bg-amber-600 hover:bg-amber-700 text-white font-black px-4 py-2.5 rounded-xl text-xs sm:text-sm shadow transition">
+              ➕ إضافة فئة VIP
             </button>
           </div>
+          <div id="vipTiersAdminGrid" class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1"></div>
         </div>
 
         <!-- Add Recurring Loyalty Offer Form -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h3 class="font-extrabold text-slate-800 text-base">➕ إضافة عرض تجميع ساعات متكرر</h3>
-          <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
-            <input id="offerTitleInput" type="text" placeholder="عنوان العرض (مثلاً: عرض 4 ساعات)" class="px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-bold">
-            <input id="offerReqHoursInput" type="number" step="0.5" min="0.5" placeholder="الساعات المطلوبة (مثلاً 2 أو 4)" class="px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-bold">
-            <input id="offerFreeHoursInput" type="number" step="0.5" min="0" placeholder="ساعات مجانية (مثلاً 1 أو 0)" class="px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-bold">
-            <input id="offerFreePerkInput" type="text" placeholder="هدية/مشروب مجاني (اختياري)" class="px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-bold">
-            <button onclick="addLoyaltyOffer()" class="bg-sky-500 hover:bg-sky-600 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow transition">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5">
+            <input id="offerTitleInput" type="text" placeholder="عنوان العرض (مثلاً: عرض 4 ساعات)" class="px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold">
+            <select id="offerScopeInput" class="px-3 py-2.5 border border-sky-300 bg-sky-50 text-sky-900 rounded-xl text-xs font-extrabold">
+              <option value="accumulated">🗂️ تراكمي (كل زيارات المركز)</option>
+              <option value="single_session">⏱️ ضمن الجلسة الواحدة فقط</option>
+            </select>
+            <input id="offerReqHoursInput" type="number" step="0.5" min="0.5" placeholder="الساعات المطلوبة (2 أو 4)" class="px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold">
+            <input id="offerFreeHoursInput" type="number" step="0.5" min="0" placeholder="ساعات مجانية (1 أو 0)" class="px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold">
+            <input id="offerFreePerkInput" type="text" placeholder="هدية/مشروب مجاني (اختياري)" class="px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold">
+            <button onclick="addLoyaltyOffer()" class="bg-sky-500 hover:bg-sky-600 text-white font-black px-4 py-2.5 rounded-xl text-xs sm:text-sm shadow transition">
               حفظ وتفعيل العرض
             </button>
           </div>
@@ -1744,6 +1753,11 @@ let appState = {
     hours: 20,
     reward: "عضو مميز VIP + ساعة دراسة ومشروب مجاني"
   },
+  vipTiers: [
+    { id: 1, name: "VIP برونزي 🥉", hours: 20, freeHours: 1, reward: "ساعة دراسة + مشروب مجاني (لمرة واحدة)", active: true },
+    { id: 2, name: "VIP فضي 🥈", hours: 50, freeHours: 2, reward: "ساعتين دراسة + مشروب وسناك مجاني (لمرة واحدة)", active: true },
+    { id: 3, name: "VIP ذهبي 👑", hours: 100, freeHours: 5, reward: "باقة 5 ساعات مجانية + ضيافة VIP (لمرة واحدة)", active: true }
+  ],
   wifi: {
     active: true,
     ssid: "Quiet-Corner-5G",
@@ -2263,6 +2277,7 @@ async function mirrorPublic(force) {
       posters: (s.posters || []).filter(p => p.active !== false),
       loyaltyOffers: s.loyaltyOffers || [],
       milestone: s.milestone || {},
+      vipTiers: Array.isArray(s.vipTiers) ? s.vipTiers : [],
       settings: { hourlyRate: (s.settings && s.settings.hourlyRate) || 5000, roundUpAfter5Min: !!(s.settings && s.settings.roundUpAfter5Min), qrDoorScanMode: (s.settings && s.settings.qrDoorScanMode) || 'notify' }
     };
     (s.customers || []).forEach(c => {
@@ -2655,6 +2670,7 @@ async function pullStateFromCloud(initial = false) {
             users: Array.isArray(cloudData.users) ? cloudData.users : [],
             loyaltyOffers: cloudData.loyaltyOffers || appState.loyaltyOffers,
             milestone: { ...appState.milestone, ...(cloudData.milestone || {}) },
+            vipTiers: Array.isArray(cloudData.vipTiers) ? cloudData.vipTiers : appState.vipTiers,
             wifi: { ...appState.wifi, ...(cloudData.wifi || {}) },
             announcements: cloudData.announcements || [],
             socialLinks: cloudData.socialLinks || [],
@@ -3008,6 +3024,73 @@ function decrementProductStock(productId) {
   }
 }
 
+function getSessionAutoFreeDeduction(cust, elapsedMs) {
+  if (!cust || elapsedMs <= 0) {
+    return { paidMs: elapsedMs, freeMs: 0, freeHoursDeducted: 0, label: '', vipTierToClaim: null, offerApplied: null };
+  }
+  let remainingMs = elapsedMs;
+  let totalFreeMs = 0;
+  const labels = [];
+  let vipTierToClaim = null;
+  let offerApplied = null;
+
+  // A) Auto-deduct unclaimed VIP Tier free hours (one-time per tier)
+  const vipEnabled = !!(appState.milestone && appState.milestone.active !== false);
+  if (vipEnabled) {
+    const totalH = Number(cust.totalLifetimeHours || cust.accumulatedHours || 0);
+    const claimedIds = Array.isArray(cust.claimedVipTierIds) ? cust.claimedVipTierIds : [];
+    const activeTiers = (appState.vipTiers || []).filter(t => t.active !== false).slice().sort((a, b) => Number(a.hours) - Number(b.hours));
+    const unclaimed = activeTiers.find(t => totalH >= Number(t.hours) && !claimedIds.some(id => String(id) === String(t.id)) && Number(t.freeHours || 0) > 0);
+    if (unclaimed) {
+      const vipFreeMs = Math.min(remainingMs, Number(unclaimed.freeHours) * 3600000);
+      if (vipFreeMs > 0) {
+        remainingMs -= vipFreeMs;
+        totalFreeMs += vipFreeMs;
+        vipTierToClaim = unclaimed;
+        labels.push(`👑 ${unclaimed.name}: -${+(vipFreeMs / 3600000).toFixed(2)} سا`);
+      }
+    }
+  }
+
+  // B) Auto-deduct active Loyalty Offer free hours directly from current session
+  const activeOffer = typeof getCustomerActiveOffer === 'function' ? getCustomerActiveOffer(cust) : null;
+  if (activeOffer && Number(activeOffer.reqHours) > 0 && Number(activeOffer.freeHours) > 0 && remainingMs > 0) {
+    const reqMs = Number(activeOffer.reqHours) * 3600000;
+    const freeMsCap = Number(activeOffer.freeHours) * 3600000;
+    let offerFreeMs = 0;
+
+    if (activeOffer.scope === 'single_session') {
+      const cycleMs = reqMs + freeMsCap;
+      const fullCycles = Math.floor(remainingMs / cycleMs);
+      const rem = remainingMs % cycleMs;
+      const paidPart = fullCycles * reqMs + Math.min(rem, reqMs);
+      offerFreeMs = Math.max(0, remainingMs - paidPart);
+    } else {
+      const accMs = Number(cust.accumulatedHours || 0) * 3600000;
+      const neededMs = Math.max(0, reqMs - accMs);
+      if (remainingMs > neededMs) {
+        offerFreeMs = Math.min(remainingMs - neededMs, freeMsCap);
+      }
+    }
+
+    if (offerFreeMs > 0) {
+      remainingMs -= offerFreeMs;
+      totalFreeMs += offerFreeMs;
+      offerApplied = activeOffer;
+      labels.push(`🎁 ${activeOffer.title}: -${+(offerFreeMs / 3600000).toFixed(2)} سا`);
+    }
+  }
+
+  return {
+    paidMs: Math.max(0, remainingMs),
+    freeMs: totalFreeMs,
+    freeHoursDeducted: +(totalFreeMs / 3600000).toFixed(2),
+    label: labels.join(' | '),
+    vipTierToClaim,
+    offerApplied
+  };
+}
+
 function getSessionBillingInfo(session, nowTs = getTrueNow()) {
   const elapsed = getSessionElapsedMs(session, nowTs);
   const hoursSpent = +(elapsed / 3600000).toFixed(2);
@@ -3026,10 +3109,16 @@ function getSessionBillingInfo(session, nowTs = getTrueNow()) {
       timeCost: 0,
       total: ordersTotal,
       deductHours: +deductHours.toFixed(2),
-      afterHours
+      afterHours,
+      autoFreeLabel: '',
+      autoFreeHours: 0,
+      vipTierToClaim: null,
+      offerApplied: null
     };
   }
-  const timeCost = calculateTimeCost(elapsed, appState.settings.hourlyRate);
+  const cust = (appState.customers || []).find(c => c.id === session.customerId);
+  const autoDed = getSessionAutoFreeDeduction(cust, elapsed);
+  const timeCost = autoDed.paidMs <= 0 ? 0 : calculateTimeCost(autoDed.paidMs, appState.settings.hourlyRate);
   return {
     elapsed,
     hoursSpent,
@@ -3039,7 +3128,11 @@ function getSessionBillingInfo(session, nowTs = getTrueNow()) {
     timeCost,
     total: timeCost + ordersTotal,
     deductHours: 0,
-    afterHours: 0
+    afterHours: 0,
+    autoFreeLabel: autoDed.label,
+    autoFreeHours: autoDed.freeHoursDeducted,
+    vipTierToClaim: autoDed.vipTierToClaim,
+    offerApplied: autoDed.offerApplied
   };
 }
 
@@ -3339,10 +3432,10 @@ function finalizeCustomerSessionCheckout(session, mode = 'cash') {
   const elapsed = getSessionElapsedMs(session, now);
   const hoursSpent = Math.max(0.25, +(elapsed / 3600000).toFixed(2));
   const ordersTotal = (session.orders || []).reduce((sum, o) => sum + o.price, 0);
-  let timeCost = calculateTimeCost(elapsed, appState.settings.hourlyRate);
-  let note = `جلسة دراسة (${formatDuration(elapsed)}) + طلبات (${ordersTotal.toLocaleString()})`;
-
   const cust = appState.customers.find(c => c.id === session.customerId);
+  const autoDed = mode === 'cash' ? getSessionAutoFreeDeduction(cust, elapsed) : { paidMs: elapsed, freeMs: 0, freeHoursDeducted: 0, label: '', vipTierToClaim: null, offerApplied: null };
+  let timeCost = autoDed.paidMs <= 0 ? 0 : calculateTimeCost(autoDed.paidMs, appState.settings.hourlyRate);
+  let note = `جلسة دراسة (${formatDuration(elapsed)})${autoDed.label ? ' [' + autoDed.label + ']' : ''} + طلبات (${ordersTotal.toLocaleString()})`;
 
   if (mode === 'free' && cust && (cust.freeHours || 0) >= 1) {
     const freeUsed = Math.min(cust.freeHours, Math.ceil(hoursSpent));
@@ -3364,8 +3457,31 @@ function finalizeCustomerSessionCheckout(session, mode = 'cash') {
   if (cust) {
     cust.totalLifetimeHours = +((cust.totalLifetimeHours || 0) + hoursSpent).toFixed(2);
     if (mode === 'cash') {
-      cust.accumulatedHours = +((cust.accumulatedHours || 0) + hoursSpent).toFixed(2);
-      checkAndAwardLoyalty(cust);
+      if (autoDed.vipTierToClaim) {
+        cust.claimedVipTierIds = Array.isArray(cust.claimedVipTierIds) ? cust.claimedVipTierIds : [];
+        if (!cust.claimedVipTierIds.some(id => String(id) === String(autoDed.vipTierToClaim.id))) {
+          cust.claimedVipTierIds.push(autoDed.vipTierToClaim.id);
+          logAudit('خصم VIP تلقائي (مرة واحدة)', `${cust.name} — ${autoDed.vipTierToClaim.name}`);
+        }
+      }
+      if (autoDed.offerApplied) {
+        // Free hours were already auto-deducted from this session's bill; grant freePerk if any and reset accumulated hours
+        if (autoDed.offerApplied.freePerk) {
+          cust.earnedPerks = Array.isArray(cust.earnedPerks) ? cust.earnedPerks : [];
+          cust.earnedPerks.push(`${autoDed.offerApplied.freePerk} (${autoDed.offerApplied.title})`);
+        }
+        if (autoDed.offerApplied.scope !== 'single_session') {
+          cust.accumulatedHours = 0;
+        }
+      } else {
+        const activeOffer = getCustomerActiveOffer(cust);
+        if (activeOffer && activeOffer.scope === 'single_session') {
+          checkAndAwardSingleSessionOffer(cust, activeOffer, hoursSpent);
+        } else {
+          cust.accumulatedHours = +((cust.accumulatedHours || 0) + hoursSpent).toFixed(2);
+          checkAndAwardLoyalty(cust);
+        }
+      }
     }
   }
 
@@ -3774,7 +3890,9 @@ function updateModalSessionLiveNumbers() {
       perkBanner.textContent = `🎫 مشترك بـ (${bill.sub.packageName}) • الرصيد الحالي: ${bill.sub.remainingHours} ساعة • ينسحب الآن: ${bill.deductHours} ساعة • المتبقي بعدها: ${bill.afterHours} ساعة${bill.sub.freePerk ? ' | 🎁 ' + bill.sub.freePerk : ''}`;
     }
   } else {
-    document.getElementById('modalSessionTimeCost').textContent = formatMoney(bill.timeCost);
+    document.getElementById('modalSessionTimeCost').innerHTML = bill.autoFreeLabel
+      ? `${formatMoney(bill.timeCost)}<span class="block text-[10px] font-black text-emerald-600 mt-0.5">${bill.autoFreeLabel}</span>`
+      : formatMoney(bill.timeCost);
   }
   document.getElementById('modalSessionGrandTotal').textContent = formatMoney(netTotal);
 
@@ -4784,6 +4902,7 @@ function addLoyaltyOffer() {
   if (!canWrite(false)) return;
   const title = document.getElementById('offerTitleInput').value.trim();
   const reqHours = Number(document.getElementById('offerReqHoursInput').value);
+  const scope = document.getElementById('offerScopeInput')?.value || 'accumulated';
   const freeHours = Math.max(0, Number(document.getElementById('offerFreeHoursInput').value) || 0);
   const freePerk = (document.getElementById('offerFreePerkInput')?.value || '').trim();
   if (!title || reqHours <= 0 || (freeHours <= 0 && !freePerk)) {
@@ -4793,6 +4912,7 @@ function addLoyaltyOffer() {
   appState.loyaltyOffers.push({
     id: Date.now(),
     title,
+    scope,
     reqHours,
     freeHours,
     freePerk,
@@ -4835,46 +4955,164 @@ function adjustCustomerLoyalty(custId, field, delta) {
   renderLoyalty();
 }
 
-function renderLoyalty() {
-  document.getElementById('milestoneActiveCheck').checked = !!(appState.milestone && appState.milestone.active);
-  document.getElementById('milestoneHoursInput').value = (appState.milestone && appState.milestone.hours) || 20;
-  document.getElementById('milestoneRewardInput').value = (appState.milestone && appState.milestone.reward) || '';
+function getSortedVipTiers() {
+  return (appState.vipTiers || []).slice().sort((a, b) => Number(a.hours) - Number(b.hours));
+}
 
-  document.getElementById('loyaltyOffersGrid').innerHTML = (appState.loyaltyOffers || []).map(o => `
+function toggleVipSystemGlobal(isChecked) {
+  if (!canWrite(false)) return;
+  appState.milestone = appState.milestone || {};
+  appState.milestone.active = !!isChecked;
+  pushStateToCloud();
+  renderLoyalty();
+}
+
+function addVipTier() {
+  if (!canWrite(false)) return;
+  const name = (document.getElementById('vipTierNameInput')?.value || '').trim();
+  const hours = Number(document.getElementById('vipTierHoursInput')?.value || 0);
+  const freeHours = Math.max(0, Number(document.getElementById('vipTierFreeHoursInput')?.value || 0));
+  const reward = (document.getElementById('vipTierRewardInput')?.value || '').trim();
+  if (!name || hours <= 0 || !reward) {
+    return alert('يرجى تعبئة اسم فئة الـ VIP، عدد الساعات المطلوبة، والمكافأة لمرة واحدة.');
+  }
+  appState.vipTiers = Array.isArray(appState.vipTiers) ? appState.vipTiers : [];
+  appState.vipTiers.push({ id: Date.now(), name, hours, freeHours, reward, active: true });
+  document.getElementById('vipTierNameInput').value = '';
+  document.getElementById('vipTierHoursInput').value = '';
+  if (document.getElementById('vipTierFreeHoursInput')) document.getElementById('vipTierFreeHoursInput').value = '';
+  document.getElementById('vipTierRewardInput').value = '';
+  logAudit('إضافة فئة VIP', `${name} (${hours} ساعة) — ${reward}`);
+  pushStateToCloud();
+  renderLoyalty();
+}
+
+function toggleVipTier(id) {
+  if (!canWrite(false)) return;
+  const t = (appState.vipTiers || []).find(x => x.id === id);
+  if (t) t.active = !t.active;
+  pushStateToCloud();
+  renderLoyalty();
+}
+
+function deleteVipTier(id) {
+  if (!canWrite(false)) return;
+  if (!confirm('هل تريد حذف فئة الـ VIP هذه؟')) return;
+  appState.vipTiers = (appState.vipTiers || []).filter(x => x.id !== id);
+  pushStateToCloud();
+  renderLoyalty();
+}
+
+function claimCustomerVipTier(custId, tierId) {
+  if (!canWrite(false)) return;
+  const c = appState.customers.find(x => x.id === custId);
+  const t = (appState.vipTiers || []).find(x => String(x.id) === String(tierId));
+  if (!c || !t) return;
+  c.claimedVipTierIds = Array.isArray(c.claimedVipTierIds) ? c.claimedVipTierIds : [];
+  if (c.claimedVipTierIds.some(id => String(id) === String(tierId))) {
+    return alert('تم استخدام مكافأة هذه الفئة مسبقاً لهذا الزبون (لمرة واحدة فقط).');
+  }
+  if (!confirm(`تأكيد تسليم مكافأة فئة (${t.name}) للزبون (${c.name})؟\nالمكافأة: ${t.reward}\n\nملاحظة: لن يتمكن من استخدامها مرة أخرى.`)) return;
+  c.claimedVipTierIds.push(t.id);
+  logAudit('تسليم مكافأة VIP (مرة واحدة)', `${c.name} — ${t.name}: ${t.reward}`);
+  SoundFX.success();
+  pushStateToCloud();
+  renderLoyalty();
+}
+
+function checkAndAwardSingleSessionOffer(cust, offer, sessionHours) {
+  if (!offer || !offer.reqHours) return;
+  const times = Math.floor(sessionHours / offer.reqHours);
+  if (times <= 0) return;
+  cust.earnedPerks = Array.isArray(cust.earnedPerks) ? cust.earnedPerks : [];
+  for (let i = 0; i < times; i++) {
+    if (offer.freeHours > 0) {
+      cust.freeHours = +((cust.freeHours || 0) + Number(offer.freeHours)).toFixed(2);
+    }
+    if (offer.freePerk) {
+      cust.earnedPerks.push(`${offer.freePerk} (${offer.title} - جلسة واحدة)`);
+    }
+  }
+}
+
+function renderLoyalty() {
+  const msCheck = document.getElementById('milestoneActiveCheck');
+  if (msCheck) msCheck.checked = !!(appState.milestone && appState.milestone.active !== false);
+
+  const vipGrid = document.getElementById('vipTiersAdminGrid');
+  const sortedTiers = getSortedVipTiers();
+  if (vipGrid) {
+    vipGrid.innerHTML = sortedTiers.map(t => `
+      <div class="bg-white p-3.5 rounded-2xl border ${t.active ? 'border-amber-300 shadow-sm' : 'border-slate-200 opacity-60'} flex items-center justify-between gap-2">
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="font-black text-amber-900 text-sm">${t.name}</span>
+            <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">${t.hours} ساعة</span>
+          </div>
+          <p class="text-[11px] font-bold text-slate-600 mt-1">🎁 ${t.reward}</p>
+        </div>
+        <div class="flex flex-col gap-1 shrink-0">
+          <button onclick="toggleVipTier(${t.id})" class="bg-slate-800 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg">${t.active ? 'إيقاف' : 'تفعيل'}</button>
+          <button onclick="deleteVipTier(${t.id})" class="bg-rose-50 text-rose-600 text-[10px] font-bold px-2.5 py-1 rounded-lg">حذف</button>
+        </div>
+      </div>
+    `).join('') || '<p class="col-span-full text-xs font-bold text-amber-700 text-center py-2">لا توجد فئات VIP مضافة بعد</p>';
+  }
+
+  document.getElementById('loyaltyOffersGrid').innerHTML = (appState.loyaltyOffers || []).map(o => {
+    const isSingle = o.scope === 'single_session';
+    return `
     <div class="bg-white p-5 rounded-2xl border ${o.active ? 'border-purple-300 bg-purple-50/30' : 'border-slate-200 opacity-60'} flex items-center justify-between gap-4">
       <div>
-        <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full ${o.active ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-600'}">
-          ${o.active ? 'مفعل للزبائن' : 'متوقف'}
-        </span>
-        <h4 class="font-black text-slate-800 text-lg mt-1">${o.title}</h4>
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full ${o.active ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-600'}">
+            ${o.active ? 'مفعل للزبائن' : 'متوقف'}
+          </span>
+          <span class="text-[11px] font-black px-2.5 py-0.5 rounded-full ${isSingle ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-sky-100 text-sky-800 border border-sky-200'}">
+            ${isSingle ? '⏱️ ضمن الجلسة الواحدة فقط' : '🗂️ تراكمي (كل زيارات المركز)'}
+          </span>
+        </div>
+        <h4 class="font-black text-slate-800 text-lg mt-1.5">${o.title}</h4>
         <p class="text-sm text-slate-600 font-bold">كل <b>${o.reqHours}</b> ساعات دراسة ⬅️ ${o.freeHours > 0 ? `<b>${o.freeHours}</b> ساعة مجانية` : ''}${o.freeHours > 0 && o.freePerk ? ' + ' : ''}${o.freePerk ? `<span class="text-emerald-700 font-black">🎁 ${o.freePerk}</span>` : ''}</p>
       </div>
-      <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-2 shrink-0">
         <button onclick="toggleLoyaltyOffer(${o.id})" class="bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg">${o.active ? 'إيقاف' : 'تفعيل'}</button>
         <button onclick="deleteLoyaltyOffer(${o.id})" class="bg-rose-50 text-rose-600 text-xs font-bold px-3 py-1.5 rounded-lg">حذف</button>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
-  const msActive = appState.milestone?.active;
-  const msHours = Number(appState.milestone?.hours || 20);
+  const vipEnabled = !!(appState.milestone && appState.milestone.active !== false);
+  const activeTiers = vipEnabled ? sortedTiers.filter(t => t.active) : [];
 
   document.getElementById('loyaltyCustomersBody').innerHTML = appState.customers.map(c => {
-    const totalH = c.totalLifetimeHours || c.accumulatedHours || 0;
-    const isVip = msActive && totalH >= msHours;
+    const totalH = Number(c.totalLifetimeHours || c.accumulatedHours || 0);
+    const claimedIds = Array.isArray(c.claimedVipTierIds) ? c.claimedVipTierIds : [];
+    const achievedTiers = activeTiers.filter(t => totalH >= Number(t.hours));
+    const vipHtml = achievedTiers.map(t => {
+      const isClaimed = claimedIds.some(id => String(id) === String(t.id));
+      if (isClaimed) {
+        return `<span class="inline-flex items-center gap-1 bg-slate-100 text-slate-500 border border-slate-200 text-[10px] font-bold px-2 py-0.5 rounded-full">✅ ${t.name} (تم الاستخدام)</span>`;
+      }
+      return `<button onclick="claimCustomerVipTier(${c.id}, ${t.id})" class="inline-flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-sm transition">🎁 تسليم ${t.name}</button>`;
+    }).join(' ');
+
     return `
-      <tr class="${isVip ? 'bg-amber-50/40' : ''}">
+      <tr class="${achievedTiers.length > 0 ? 'bg-amber-50/40' : ''}">
         <td class="p-3 font-bold">
-          ${c.name} <span class="text-xs text-slate-400">(${c.code})</span>
-          ${isVip ? '<span class="mr-1 bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full">🏅 مستحق للمكافأة</span>' : ''}
+          <div>${c.name} <span class="text-xs text-slate-400 font-mono">#${c.code}</span></div>
+          ${vipHtml ? `<div class="flex flex-wrap gap-1 mt-1">${vipHtml}</div>` : ''}
         </td>
-        <td class="p-3 font-extrabold text-sky-700">${totalH} ساعة</td>
-        <td class="p-3 font-extrabold text-amber-600">${c.accumulatedHours || 0} ساعة</td>
-        <td class="p-3 font-extrabold text-purple-600">${c.freeHours || 0} ساعة</td>
-        <td class="p-3 flex items-center justify-center gap-1.5">
-          <button onclick="adjustCustomerLoyalty(${c.id}, 'accumulatedHours', 1)" class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg text-xs font-bold">+1 مجمعة</button>
-          <button onclick="adjustCustomerLoyalty(${c.id}, 'freeHours', 1)" class="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-lg text-xs font-bold">+1 مجانية</button>
-          <button onclick="adjustCustomerLoyalty(${c.id}, 'freeHours', -1)" class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-bold">-1 مجانية</button>
+        <td class="p-3 font-black text-slate-700">${totalH} ساعة</td>
+        <td class="p-3 font-bold text-sky-600">${c.accumulatedHours || 0} ساعة</td>
+        <td class="p-3 font-black text-purple-600">${c.freeHours || 0} ساعة</td>
+        <td class="p-3 text-center">
+          <div class="inline-flex gap-1">
+            <button onclick="adjustCustomerLoyalty(${c.id}, 'accumulatedHours', 1)" class="bg-amber-100 text-amber-800 px-2 py-1 rounded-lg text-xs font-bold">+1 مجمعة</button>
+            <button onclick="adjustCustomerLoyalty(${c.id}, 'freeHours', 1)" class="bg-purple-100 text-purple-800 px-2 py-1 rounded-lg text-xs font-bold">+1 مجانية</button>
+            <button onclick="adjustCustomerLoyalty(${c.id}, 'freeHours', -1)" class="bg-slate-100 text-slate-700 px-2 py-1 rounded-lg text-xs font-bold">-1</button>
+          </div>
         </td>
       </tr>
     `;
