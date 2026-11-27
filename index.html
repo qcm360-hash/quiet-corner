@@ -195,52 +195,69 @@
   <div class="flex-1 flex flex-col min-w-0">
 
     <!-- Top Barcode, Date/Time & Cloud Sync Bar -->
-    <header class="no-print bg-white border-b border-slate-200 px-3 sm:px-4 lg:px-8 py-2.5 lg:py-3 flex flex-wrap items-center justify-between gap-2 lg:gap-3 sticky top-0 z-20 shadow-sm">
-      <!-- Barcode & Webcam QR Input -->
-      <div class="flex items-center gap-1.5 sm:gap-2 w-full lg:flex-1 lg:min-w-[260px] lg:max-w-lg">
+    <header class="no-print bg-white border-b border-slate-200 px-3 sm:px-4 lg:px-5 py-2 flex flex-wrap xl:flex-nowrap items-center justify-between gap-2 sticky top-0 z-30 shadow-sm">
+      <!-- Expanded Customer Search (Name / Code / Phone / Barcode) + QR -->
+      <div class="flex items-center gap-1.5 w-full xl:flex-1 xl:min-w-[360px] relative">
         <div class="relative flex-1">
-          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-base">🔍</span>
-          <input id="barcodeInput" type="text" placeholder="اكتب رقم الزبون (1001) أو الموبايل أو امسح..."
-            class="w-full pr-9 pl-3 py-2 bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition"
-            onkeydown="if(event.key==='Enter') handleBarcodeScan(this.value)">
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none">🔍</span>
+          <input id="barcodeInput" type="text" autocomplete="off"
+            placeholder="ابحث بالاسم أو رقم الزبون (1001) أو الموبايل أو امسح الباركود..."
+            class="w-full pr-9 pl-8 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition shadow-inner"
+            oninput="renderHeaderCustomerSuggestions(this.value)"
+            onfocus="renderHeaderCustomerSuggestions(this.value)"
+            onkeydown="if(event.key==='Enter'){ event.preventDefault(); handleBarcodeScan(this.value); hideHeaderCustomerSuggestions(); } else if(event.key==='Escape'){ hideHeaderCustomerSuggestions(); }">
+          <button type="button" onclick="const el=document.getElementById('barcodeInput'); el.value=''; hideHeaderCustomerSuggestions(); el.focus();"
+            title="مسح البحث" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 font-bold text-xs">✕</button>
+
+          <!-- Live Autocomplete Dropdown for Registered Customers -->
+          <div id="headerCustomerSuggestBox" class="hidden absolute right-0 left-0 top-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 max-h-80 overflow-y-auto divide-y divide-slate-100"></div>
         </div>
-        <button onclick="handleBarcodeScan(document.getElementById('barcodeInput').value)"
-          class="bg-sky-500 hover:bg-sky-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs shadow transition shrink-0">
-          دخول / مسح
+        <button onclick="handleBarcodeScan(document.getElementById('barcodeInput').value); hideHeaderCustomerSuggestions();"
+          class="bg-sky-500 hover:bg-sky-600 text-white font-black px-3.5 py-2.5 rounded-xl text-xs shadow transition shrink-0 whitespace-nowrap">
+          دخول
         </button>
         <button onclick="openWebcamScannerModal()" title="تشغيل كاميرا اللابتوب لقراءة QR الزبائن تلقائياً"
-          class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-3.5 py-2 rounded-xl text-xs shadow flex items-center gap-1.5 transition shrink-0">
-          <span>📷</span><span>كاميرا QR</span>
+          class="bg-slate-800 hover:bg-slate-900 text-white font-black px-3 py-2.5 rounded-xl text-xs shadow flex items-center gap-1 transition shrink-0 whitespace-nowrap">
+          <span>📷</span><span class="hidden sm:inline">QR</span>
         </button>
       </div>
 
-      <!-- Live Date & Clock -->
-      <div class="flex items-center gap-1.5 bg-slate-100 border border-slate-200 px-2.5 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold text-slate-700">
-        <span>🗓️</span>
-        <span id="headerLiveDateTime">--/--/---- --:--:--</span>
-      </div>
+      <!-- Compact Packed Status & Tools Cluster -->
+      <div class="flex items-center justify-between xl:justify-end gap-1.5 flex-wrap w-full xl:w-auto shrink-0">
+        <!-- Live Date & Clock -->
+        <div class="flex items-center gap-1 bg-slate-100 border border-slate-200 px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold text-slate-700 whitespace-nowrap">
+          <span>🗓️</span>
+          <span id="headerLiveDateTime">--/--/---- --:--:--</span>
+        </div>
 
-      <!-- Cloud Status, Sound Toggle, Today Revenue & Active User -->
-      <div class="flex items-center gap-1.5 sm:gap-2.5 flex-wrap">
-        <button id="btnToggleSystemSounds" onclick="toggleSystemSounds()" title="تشغيل / كتم أصوات النظام"
-          class="flex items-center gap-1 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition">
-          <span id="soundStatusIcon">🔊</span>
-          <span class="hidden sm:inline">الأصوات</span>
-        </button>
+        <!-- Quick Tools: Calc & Sound -->
+        <div class="flex items-center gap-1">
+          <button id="btnToggleFloatingCalc" onclick="toggleFloatingCalc()" title="آلة حاسبة عائمة ومتحركة (F4)"
+            class="flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition">
+            <span>🧮</span>
+          </button>
+          <button id="btnToggleSystemSounds" onclick="toggleSystemSounds()" title="تشغيل / كتم أصوات النظام"
+            class="flex items-center gap-1 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition">
+            <span id="soundStatusIcon">🔊</span>
+          </button>
+        </div>
 
-        <div class="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-extrabold">
-          <span>دخل اليوم:</span>
+        <!-- Today Revenue -->
+        <div class="flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1.5 rounded-xl text-[11px] font-black whitespace-nowrap">
+          <span>اليوم:</span>
           <span id="headerTodayTotal">0 ل.س</span>
         </div>
 
-        <div id="cloudStatusBadge" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+        <!-- Cloud Sync Status -->
+        <div id="cloudStatusBadge" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
           <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
           <span>مزامنة...</span>
         </div>
 
-        <div class="flex items-center gap-2 bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xs font-bold">
+        <!-- Active User & Logout -->
+        <div class="flex items-center gap-1.5 bg-slate-800 text-white px-2.5 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap">
           <span id="currentUserBadge">🔓 إعداد أولي</span>
-          <button id="btnHeaderLockLogout" onclick="logoutSystemUser()" title="قفل الشاشة / تبديل المستخدم" class="hidden text-rose-300 hover:text-rose-200 font-extrabold mr-1">خروج</button>
+          <button id="btnHeaderLockLogout" onclick="logoutSystemUser()" title="قفل الشاشة / تبديل المستخدم" class="hidden text-rose-300 hover:text-rose-200 font-extrabold mr-0.5">خروج</button>
         </div>
       </div>
     </header>
@@ -466,14 +483,16 @@
         <!-- Add Recurring Loyalty Offer Form -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h3 class="font-extrabold text-slate-800 text-base">➕ إضافة عرض تجميع ساعات متكرر</h3>
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <input id="offerTitleInput" type="text" placeholder="عنوان العرض (مثلاً: عرض المثابرة)" class="px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm">
-            <input id="offerReqHoursInput" type="number" step="0.5" min="0.5" placeholder="عدد الساعات المطلوبة (مثلاً 3)" class="px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm">
-            <input id="offerFreeHoursInput" type="number" step="0.5" min="0.5" placeholder="الساعات المجانية (مثلاً 1)" class="px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm">
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <input id="offerTitleInput" type="text" placeholder="عنوان العرض (مثلاً: عرض 4 ساعات)" class="px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-bold">
+            <input id="offerReqHoursInput" type="number" step="0.5" min="0.5" placeholder="الساعات المطلوبة (مثلاً 2 أو 4)" class="px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-bold">
+            <input id="offerFreeHoursInput" type="number" step="0.5" min="0" placeholder="ساعات مجانية (مثلاً 1 أو 0)" class="px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-bold">
+            <input id="offerFreePerkInput" type="text" placeholder="هدية/مشروب مجاني (اختياري)" class="px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-bold">
             <button onclick="addLoyaltyOffer()" class="bg-sky-500 hover:bg-sky-600 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow transition">
               حفظ وتفعيل العرض
             </button>
           </div>
+          <p class="text-[11px] text-slate-500 font-bold">💡 يمكنك إضافة أكثر من عرض (مثلاً: 2 ساعة = ساعة مجانية، أو 4 ساعات = مشروب + ساعة مجانية) وسيتمكن كل زبون من اختيار <b>عرض واحد فقط</b> يجمع ساعاته عليه.</p>
         </div>
 
         <!-- Active Offers List -->
@@ -500,60 +519,75 @@
       </section>
 
       <!-- ==================== TAB 6: QUICK POS ==================== -->
-      <section id="tab-pos" class="tab-section hidden space-y-6">
+      <section id="tab-pos" class="tab-section hidden space-y-5">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="text-xl sm:text-2xl font-black text-slate-800">نقطة بيع سريعة (كافيه وطباعة لزوار الخارج)</h2>
-            <p class="text-xs sm:text-sm text-slate-500">لبيع مشروب أو خدمة طباعة مباشرة بدون فتح جلسة دراسة — تبقى المبيعات محفوظة وظاهرة بالأسفل</p>
+            <p class="text-xs sm:text-sm text-slate-500">اختر المنتجات وحدد العدد مباشرة — الفاتورة وزر إتمام البيع ثابتان أمامك بدون نزول</p>
           </div>
           <div class="bg-emerald-50 border border-emerald-200 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black text-emerald-800">
             إجمالي مبيعات الكافيه اليوم: <span id="posTodayRevenueBadge">0 ل.س</span>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div class="lg:col-span-2 space-y-3">
-            <div class="relative">
-              <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
-              <input id="posProductsSearchInput" type="text" oninput="renderQuickPos()" placeholder="ابحث عن منتج أو مشروب أو خدمة..."
-                class="w-full pr-10 pl-10 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
-              <button type="button" onclick="const el=document.getElementById('posProductsSearchInput'); if(el){el.value=''; renderQuickPos(); el.focus();}"
-                title="مسح البحث" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 font-bold text-sm">✕</button>
-            </div>
-            <div id="posProductsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3"></div>
-          </div>
-          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
-            <div>
-              <div class="flex items-center justify-between border-b pb-3 mb-3">
-                <h3 class="font-black text-slate-800">🧾 الفاتورة السريعة</h3>
-                <button onclick="posCart=[]; renderQuickPos();" class="text-xs font-bold text-rose-500 hover:text-rose-700">مسح السلة</button>
-              </div>
-              <div id="posCartList" class="space-y-2 max-h-64 overflow-y-auto text-sm"></div>
-
-              <!-- Persistent Last Sold Receipt Banner (Never disappears after checkout) -->
-              <div id="lastSoldPosCard" class="hidden mt-3 bg-emerald-50/90 border border-emerald-200 rounded-2xl p-3 space-y-1">
-                <div class="flex items-center justify-between text-[11px] font-black text-emerald-800">
-                  <span>✅ آخر عملية بيع مسجلة:</span>
-                  <span id="lastSoldPosTime" class="font-mono text-emerald-700">---</span>
-                </div>
-                <p id="lastSoldPosItems" class="text-xs font-bold text-slate-700">---</p>
-                <p id="lastSoldPosTotal" class="text-xs font-black text-emerald-700">0 ل.س</p>
-              </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 items-start">
+          <!-- Sticky Cart & Instant Checkout Box (Top on mobile, Sticky side on desktop) -->
+          <div class="order-first lg:order-last lg:sticky lg:top-20 bg-white p-4 rounded-2xl border-2 border-emerald-200/80 shadow-md flex flex-col gap-3">
+            <div class="flex items-center justify-between border-b pb-2.5">
+              <h3 class="font-black text-slate-800 text-sm sm:text-base flex items-center gap-1.5">
+                <span>🧾</span><span>الفاتورة السريعة</span>
+                <span id="posCartItemsCountBadge" class="bg-sky-100 text-sky-700 text-[11px] font-black px-2 py-0.5 rounded-full">0</span>
+              </h3>
+              <button onclick="posCart=[]; renderQuickPos();" class="text-xs font-extrabold text-rose-500 hover:text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg transition">مسح السلة</button>
             </div>
 
-            <div class="border-t pt-3 space-y-3">
-              <div class="flex justify-between font-black text-base sm:text-lg">
-                <span>الإجمالي الحالي:</span>
-                <span id="posCartTotal" class="text-emerald-600">0 ل.س</span>
+            <!-- Instant Total & Checkout Button right at top of cart for zero scrolling -->
+            <div class="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-3 space-y-2.5">
+              <div class="flex justify-between items-center font-black text-base">
+                <span class="text-slate-700">الإجمالي:</span>
+                <span id="posCartTotal" class="text-emerald-700 text-lg">0 ل.س</span>
               </div>
-              <button onclick="checkoutQuickPos()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow transition text-sm">
+              <button onclick="checkoutQuickPos()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black py-2.5 rounded-xl shadow-md transition text-sm">
                 ✅ إتمام البيع وإضافة للصندوق
               </button>
             </div>
+
+            <!-- Cart Items List with Quantity (+ / - / Direct Input) -->
+            <div id="posCartList" class="space-y-2 max-h-60 overflow-y-auto text-xs sm:text-sm pr-0.5"></div>
+
+            <!-- Persistent Last Sold Receipt Banner -->
+            <div id="lastSoldPosCard" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-0.5">
+              <div class="flex items-center justify-between text-[10px] font-black text-emerald-700">
+                <span>✅ آخر عملية بيع مسجلة:</span>
+                <span id="lastSoldPosTime" class="font-mono text-slate-500">---</span>
+              </div>
+              <p id="lastSoldPosItems" class="text-[11px] font-bold text-slate-700 truncate">---</p>
+              <p id="lastSoldPosTotal" class="text-[11px] font-black text-emerald-700">0 ل.س</p>
+            </div>
+          </div>
+
+          <!-- Products Search, Default Qty & Grid -->
+          <div class="lg:col-span-2 space-y-3">
+            <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
+              <div class="relative flex-1 min-w-[200px]">
+                <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+                <input id="posProductsSearchInput" type="text" oninput="renderQuickPos()" placeholder="ابحث عن منتج أو مشروب أو خدمة..."
+                  class="w-full pr-10 pl-9 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition">
+                <button type="button" onclick="const el=document.getElementById('posProductsSearchInput'); if(el){el.value=''; renderQuickPos(); el.focus();}"
+                  title="مسح البحث" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 font-bold text-sm">✕</button>
+              </div>
+              <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-2xl px-3 py-1.5 shadow-sm shrink-0">
+                <span class="text-xs font-extrabold text-slate-600">العدد عند الإضافة:</span>
+                <button type="button" onclick="const q=document.getElementById('posQuickAddQty'); q.value=Math.max(1,(parseInt(q.value)||1)-1);" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 font-black text-slate-700">-</button>
+                <input id="posQuickAddQty" type="number" min="1" value="1" dir="ltr" class="w-12 text-center font-black text-sm text-sky-700 border border-slate-200 rounded-lg py-0.5">
+                <button type="button" onclick="const q=document.getElementById('posQuickAddQty'); q.value=(parseInt(q.value)||1)+1;" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 font-black text-slate-700">+</button>
+              </div>
+            </div>
+            <div id="posProductsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5"></div>
           </div>
         </div>
 
-        <!-- Additional Quick POS Sales History Table (Never hides sold items) -->
+        <!-- Additional Quick POS Sales History Table -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="p-4 border-b bg-slate-50 flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -591,6 +625,9 @@
             <h2 class="text-xl sm:text-2xl font-black text-slate-800">💸 صندوق المحل والمسحوبات (اليومية والشهري)</h2>
             <p class="text-xs sm:text-sm text-slate-500">متابعة المبلغ الفعلي الموجود بالصندوق، وتسجيل المسحوبات (معاشات، فواتير، بضاعة) سواء من دخل اليوم أو من الصندوق العام</p>
           </div>
+          <button onclick="openShiftHandoverModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-4 py-2.5 rounded-xl text-xs sm:text-sm shadow flex items-center gap-2 transition">
+            <span>🔄</span><span>تسليم وردية (جرد الدرج)</span>
+          </button>
         </div>
 
         <!-- 4 KPI Cards -->
@@ -930,6 +967,15 @@
           <div id="closedDaysArchiveGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
         </div>
 
+        <!-- Audit Log & Shift Handovers -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="font-black text-slate-800 flex items-center gap-2"><span>🛡️</span> سجل الحركات والمراقبة (Audit Log &amp; الورديات)</h3>
+            <span class="text-[11px] font-bold text-slate-400">آخر 50 حركة حساسة</span>
+          </div>
+          <div id="auditLogListBox" class="space-y-1.5 max-h-60 overflow-y-auto text-xs"></div>
+        </div>
+
         <!-- All Transactions Table -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
           <div class="p-4 border-b bg-slate-50 font-black text-slate-700 text-sm">سجل جميع الحركات المالية التفصيلي</div>
@@ -1120,6 +1166,9 @@
             </button>
             <button onclick="editSessionSeatInline()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold transition">
               🪑 <span id="modalSessionSeatLabel">تحديد طاولة</span>
+            </button>
+            <button onclick="mergeWithAnotherSession()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold transition">
+              🔗 دمج حساب طاولة أخرى
             </button>
           </div>
         </div>
@@ -2435,6 +2484,50 @@ setTimeout(syncUndoBaseline, 1500);
 let pushInFlight = false;
 let pushPending = false;
 let hasUnsyncedLocalChanges = false;
+let lastCloudRev = 0;
+
+function mergeByIdKeepBoth(localArr, cloudArr, deletedIdsSet) {
+  const map = new Map();
+  (Array.isArray(cloudArr) ? cloudArr : []).forEach(item => {
+    if (!item || item.id == null) return;
+    if (deletedIdsSet && deletedIdsSet.has(String(item.id))) return;
+    map.set(String(item.id), item);
+  });
+  (Array.isArray(localArr) ? localArr : []).forEach(item => {
+    if (!item || item.id == null) return;
+    map.set(String(item.id), item);
+  });
+  return Array.from(map.values());
+}
+
+function mergeCloudIntoLocal(cloudData) {
+  if (!cloudData || typeof cloudData !== 'object') return;
+  // Merge customers: keep all customers from both laptops (never drop a newly registered customer)
+  appState.customers = mergeByIdKeepBoth(appState.customers, cloudData.customers);
+  // Merge subscriptions: keep active subscriptions added on the other laptop!
+  appState.subscriptions = mergeByIdKeepBoth(appState.subscriptions, cloudData.subscriptions);
+  // Merge sessions: keep sessions started on the other laptop!
+  const cloudSessions = (cloudData.sessions || []).map(s => ({
+    ...s,
+    orders: Array.isArray(s.orders) ? s.orders : (s.orders ? Object.values(s.orders) : [])
+  }));
+  appState.sessions = mergeByIdKeepBoth(appState.sessions, cloudSessions);
+  // Merge financial & archive logs by id
+  appState.daily = mergeByIdKeepBoth(appState.daily, cloudData.daily);
+  appState.withdrawals = mergeByIdKeepBoth(appState.withdrawals, cloudData.withdrawals);
+  appState.closedDays = mergeByIdKeepBoth(appState.closedDays, cloudData.closedDays);
+  appState.hallReservations = mergeByIdKeepBoth(appState.hallReservations, cloudData.hallReservations);
+  appState.feedbacks = mergeByIdKeepBoth(appState.feedbacks, cloudData.feedbacks);
+}
+
+async function fetchCloudRev() {
+  try {
+    const r = await fetch(await fbUrl('qc_meta/rev'));
+    if (!r.ok) return null;
+    const v = await r.json();
+    return Number(v) || 0;
+  } catch (e) { return null; }
+}
 
 async function pushStateToCloud(skipUndoPush = false) {
   const currentSnapshot = JSON.stringify(appState);
@@ -2442,7 +2535,7 @@ async function pushStateToCloud(skipUndoPush = false) {
     if (lastCommittedStateSnapshot && lastCommittedStateSnapshot !== currentSnapshot) {
       undoStateStack.push(lastCommittedStateSnapshot);
       if (undoStateStack.length > UNDO_STACK_MAX) undoStateStack.shift();
-      redoStateStack = []; // Clear redo history on new action
+      redoStateStack = [];
     }
   }
   lastCommittedStateSnapshot = currentSnapshot;
@@ -2462,6 +2555,18 @@ async function pushStateToCloud(skipUndoPush = false) {
   try {
     do {
       pushPending = false;
+      // Multi-laptop conflict protection: if another laptop pushed newer data, merge it BEFORE writing!
+      const remoteRev = await fetchCloudRev();
+      if (remoteRev && lastCloudRev && remoteRev > lastCloudRev) {
+        try {
+          const cr = await fetch(await fbUrl('qc_data'));
+          if (cr.ok) {
+            const latestCloud = await cr.json();
+            if (latestCloud) mergeCloudIntoLocal(latestCloud);
+          }
+        } catch (e) {}
+      }
+
       const payloadStr = JSON.stringify(appState);
       localStorage.setItem('qc_admin_state', payloadStr);
       const res = await fetch(await fbUrl('qc_data'), {
@@ -2472,6 +2577,13 @@ async function pushStateToCloud(skipUndoPush = false) {
       const serverDate = res.headers.get('Date');
       if (serverDate) serverTimeOffset = new Date(serverDate).getTime() - Date.now();
       if (res.ok) {
+        const newRev = Date.now();
+        lastCloudRev = newRev;
+        fetch(await fbUrl('qc_meta/rev'), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newRev)
+        }).catch(() => {});
         lastCloudHash = payloadStr;
         lastLocalMutationAt = Date.now();
         if (!pushPending) {
@@ -2499,11 +2611,21 @@ async function pushStateToCloud(skipUndoPush = false) {
 async function pullStateFromCloud(initial = false) {
   if (isSyncing || inboxBusy || pushInFlight) return;
   if (!initial && hasUnsyncedLocalChanges) {
-    // Never overwrite unsaved local changes (e.g. new customer / active session) with older cloud data!
     await pushStateToCloud(true);
     return;
   }
   if (!initial && (Date.now() - lastLocalMutationAt) < 5500) return;
+
+  // Lightweight revision check on non-initial polls to save ~95% of Firebase Downloads!
+  if (!initial && lastCloudRev) {
+    const remoteRev = await fetchCloudRev();
+    if (remoteRev === null) return;
+    if (remoteRev > 0 && remoteRev <= lastCloudRev) {
+      updateCloudBadge('online', 'متصل ومزامن');
+      return;
+    }
+  }
+
   isSyncing = true;
   try {
     const res = await fetch(await fbUrl('qc_data'));
@@ -2512,6 +2634,8 @@ async function pullStateFromCloud(initial = false) {
     if (serverDate) serverTimeOffset = new Date(serverDate).getTime() - Date.now();
     if (res.ok) {
       const cloudData = await res.json();
+      const remoteRev = await fetchCloudRev();
+      if (remoteRev) lastCloudRev = remoteRev;
       updateCloudBadge('online', 'متصل ومزامن');
       if (cloudData) {
         if (!initial && (hasUnsyncedLocalChanges || pushInFlight || inboxBusy || (Date.now() - lastLocalMutationAt) < 5500)) return;
@@ -2525,6 +2649,8 @@ async function pullStateFromCloud(initial = false) {
             hallSession: cloudData.hallSession ? { ...cloudData.hallSession, orders: Array.isArray(cloudData.hallSession.orders) ? cloudData.hallSession.orders : (cloudData.hallSession.orders ? Object.values(cloudData.hallSession.orders) : []) } : null,
             subscriptions: cloudData.subscriptions || [],
             daily: cloudData.daily || [],
+            withdrawals: cloudData.withdrawals || [],
+            hallReservations: cloudData.hallReservations || [],
             closedDays: cloudData.closedDays || [],
             users: Array.isArray(cloudData.users) ? cloudData.users : [],
             loyaltyOffers: cloudData.loyaltyOffers || appState.loyaltyOffers,
@@ -3295,11 +3421,17 @@ function handleBarcodeScan(rawVal, fromCamera = false) {
   document.getElementById('barcodeInput').value = '';
   if (!normalized) return;
 
-  const customer = appState.customers.find(c => {
+  const cleanLower = cleanRaw.toLowerCase();
+  let customer = appState.customers.find(c => {
     const cCode = String(c.code || '').trim().toUpperCase().replace(/^QC-/, '');
     const cPhone = String(c.phone || '').trim();
-    return cCode === normalized || cPhone === cleanRaw;
+    const cName = String(c.name || '').trim().toLowerCase();
+    return cCode === normalized || cPhone === cleanRaw || cName === cleanLower;
   });
+  if (!customer && cleanLower.length >= 2) {
+    const nameMatches = appState.customers.filter(c => String(c.name || '').toLowerCase().includes(cleanLower));
+    if (nameMatches.length === 1) customer = nameMatches[0];
+  }
 
   if (!customer) {
     SoundFX.scanError();
@@ -3787,13 +3919,49 @@ function removeCheckedOutCard(event, sessionId) {
   renderLiveSessions();
 }
 
+function getCustomerActiveOffer(cust) {
+  const activeOffers = (appState.loyaltyOffers || []).filter(o => o.active);
+  if (activeOffers.length === 0) return null;
+  if (cust && cust.selectedOfferId) {
+    const chosen = activeOffers.find(o => String(o.id) === String(cust.selectedOfferId));
+    if (chosen) return chosen;
+  }
+  return activeOffers[0];
+}
+
 function checkAndAwardLoyalty(cust) {
-  const activeOffer = (appState.loyaltyOffers || []).find(o => o.active);
+  const activeOffer = getCustomerActiveOffer(cust);
   if (!activeOffer || !activeOffer.reqHours) return;
+  cust.earnedPerks = Array.isArray(cust.earnedPerks) ? cust.earnedPerks : [];
   while ((cust.accumulatedHours || 0) >= activeOffer.reqHours) {
     cust.accumulatedHours = +(cust.accumulatedHours - activeOffer.reqHours).toFixed(2);
-    cust.freeHours = +((cust.freeHours || 0) + activeOffer.freeHours).toFixed(2);
+    if (activeOffer.freeHours > 0) {
+      cust.freeHours = +((cust.freeHours || 0) + Number(activeOffer.freeHours)).toFixed(2);
+    }
+    if (activeOffer.freePerk) {
+      cust.earnedPerks.push(`${activeOffer.freePerk} (${activeOffer.title})`);
+    }
   }
+}
+
+function setCustomerChosenOffer(custId, offerId) {
+  if (!canWrite(false)) return;
+  const c = appState.customers.find(x => x.id === custId);
+  if (!c) return;
+  c.selectedOfferId = Number(offerId) || null;
+  checkAndAwardLoyalty(c);
+  pushStateToCloud();
+  renderLoyalty();
+}
+
+function redeemCustomerPerk(custId, perkIndex) {
+  if (!canWrite(false)) return;
+  const c = appState.customers.find(x => x.id === custId);
+  if (!c || !Array.isArray(c.earnedPerks)) return;
+  const removed = c.earnedPerks.splice(perkIndex, 1)[0];
+  logAudit('تسليم هدية عرض', `${c.name}: ${removed}`);
+  pushStateToCloud();
+  renderLoyalty();
 }
 
 // ==================== FULL HALL BOOKING (SUPPORTS REGISTERED CUSTOMERS) ====================
@@ -4616,19 +4784,25 @@ function addLoyaltyOffer() {
   if (!canWrite(false)) return;
   const title = document.getElementById('offerTitleInput').value.trim();
   const reqHours = Number(document.getElementById('offerReqHoursInput').value);
-  const freeHours = Number(document.getElementById('offerFreeHoursInput').value);
-  if (!title || reqHours <= 0 || freeHours <= 0) return alert('يرجى تعبئة بيانات العرض بشكل صحيح');
+  const freeHours = Math.max(0, Number(document.getElementById('offerFreeHoursInput').value) || 0);
+  const freePerk = (document.getElementById('offerFreePerkInput')?.value || '').trim();
+  if (!title || reqHours <= 0 || (freeHours <= 0 && !freePerk)) {
+    return alert('يرجى تعبئة عنوان العرض والساعات المطلوبة مع تحديد ساعات مجانية أو هدية/مشروب مجاني');
+  }
 
   appState.loyaltyOffers.push({
     id: Date.now(),
     title,
     reqHours,
     freeHours,
+    freePerk,
     active: true
   });
   document.getElementById('offerTitleInput').value = '';
   document.getElementById('offerReqHoursInput').value = '';
   document.getElementById('offerFreeHoursInput').value = '';
+  if (document.getElementById('offerFreePerkInput')) document.getElementById('offerFreePerkInput').value = '';
+  logAudit('إضافة عرض تجميع ساعات', `${title} (${reqHours} سا ⬅️ ${freeHours} مجاني${freePerk ? ' + ' + freePerk : ''})`);
   pushStateToCloud();
   renderLoyalty();
 }
@@ -4673,7 +4847,7 @@ function renderLoyalty() {
           ${o.active ? 'مفعل للزبائن' : 'متوقف'}
         </span>
         <h4 class="font-black text-slate-800 text-lg mt-1">${o.title}</h4>
-        <p class="text-sm text-slate-600 font-bold">كل <b>${o.reqHours}</b> ساعات دراسة ⬅️ <b>${o.freeHours}</b> ساعة مجانية</p>
+        <p class="text-sm text-slate-600 font-bold">كل <b>${o.reqHours}</b> ساعات دراسة ⬅️ ${o.freeHours > 0 ? `<b>${o.freeHours}</b> ساعة مجانية` : ''}${o.freeHours > 0 && o.freePerk ? ' + ' : ''}${o.freePerk ? `<span class="text-emerald-700 font-black">🎁 ${o.freePerk}</span>` : ''}</p>
       </div>
       <div class="flex flex-col gap-2">
         <button onclick="toggleLoyaltyOffer(${o.id})" class="bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg">${o.active ? 'إيقاف' : 'تفعيل'}</button>
@@ -4715,29 +4889,46 @@ function renderQuickPos() {
   const filteredProds = (appState.products || []).filter(p =>
     !posQ || (p.name || '').toLowerCase().includes(posQ) || String(p.price || '').includes(posQ)
   );
-  document.getElementById('posProductsGrid').innerHTML = filteredProds.map(p => `
-    <button onclick="addToPosCart(${p.id})" class="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 hover:border-sky-400 shadow-sm text-center space-y-1 transition card-hover">
-      <div class="text-2xl sm:text-3xl">${p.icon}</div>
-      <div class="font-extrabold text-slate-800 text-xs sm:text-sm">${p.name}</div>
+  document.getElementById('posProductsGrid').innerHTML = filteredProds.map(p => {
+    const inCart = posCart.find(c => c.id === p.id);
+    const inCartQty = inCart ? (Number(inCart.qty) || 1) : 0;
+    return `
+    <div onclick="addToPosCart(${p.id})" class="relative cursor-pointer bg-white p-3 rounded-2xl border ${inCartQty > 0 ? 'border-emerald-400 ring-2 ring-emerald-100' : 'border-slate-200 hover:border-sky-400'} shadow-sm text-center space-y-1 transition card-hover select-none">
+      ${inCartQty > 0 ? `<span class="absolute top-2 left-2 bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow">×${inCartQty}</span>` : ''}
+      <div class="text-2xl">${p.icon}</div>
+      <div class="font-extrabold text-slate-800 text-xs leading-snug">${p.name}</div>
       <div class="text-xs font-black text-sky-600">${p.price.toLocaleString()} ل.س</div>
       ${(p.stock !== undefined && p.stock !== null && p.stock !== '') ? `<div class="text-[10px] font-black ${Number(p.stock) <= 5 ? 'text-rose-600' : 'text-slate-400'}">📦 المتبقي: ${p.stock}</div>` : ''}
-    </button>
-  `).join('') || '<div class="col-span-full bg-white p-8 rounded-2xl border border-dashed border-slate-300 text-center text-xs font-bold text-slate-400">🔍 لا يوجد منتج مطابق للبحث</div>';
+    </div>`;
+  }).join('') || '<div class="col-span-full bg-white p-8 rounded-2xl border border-dashed border-slate-300 text-center text-xs font-bold text-slate-400">🔍 لا يوجد منتج مطابق للبحث</div>';
 
-  const total = posCart.reduce((s, item) => s + item.price, 0);
+  const total = posCart.reduce((s, item) => s + (Number(item.price) * (Number(item.qty) || 1)), 0);
+  const totalQty = posCart.reduce((s, item) => s + (Number(item.qty) || 1), 0);
   document.getElementById('posCartTotal').textContent = formatMoney(total);
-  document.getElementById('posCartList').innerHTML = posCart.map((item, idx) => `
-    <div class="flex justify-between items-center bg-slate-50 px-3 py-2 rounded-xl border">
-      <span class="font-bold">${item.name}</span>
-      <div class="flex items-center gap-2">
-        <span class="font-extrabold text-emerald-600">${item.price.toLocaleString()}</span>
-        <button onclick="posCart.splice(${idx},1); SoundFX.remove(); renderQuickPos()" class="text-rose-500 font-bold text-xs">✕</button>
+  const cntBadge = document.getElementById('posCartItemsCountBadge');
+  if (cntBadge) cntBadge.textContent = totalQty;
+
+  document.getElementById('posCartList').innerHTML = posCart.map((item, idx) => {
+    const q = Number(item.qty) || 1;
+    const lineTotal = Number(item.price) * q;
+    return `
+    <div class="flex items-center justify-between gap-2 bg-slate-50 px-2.5 py-2 rounded-xl border border-slate-200">
+      <div class="min-w-0 flex-1">
+        <div class="font-extrabold text-slate-800 text-xs truncate">${item.name}</div>
+        <div class="text-[10px] font-bold text-slate-400">${Number(item.price).toLocaleString()} × ${q} = <span class="text-emerald-600 font-black">${lineTotal.toLocaleString()}</span></div>
       </div>
-    </div>
-  `).join('') || '<p class="text-xs text-slate-400 text-center py-4">اختر من المنتجات لإضافتها للفاتورة</p>';
+      <div class="flex items-center gap-1 shrink-0" dir="ltr">
+        <button type="button" onclick="updatePosCartQty(${idx}, -1)" class="w-6 h-6 rounded-lg bg-white border border-slate-300 hover:bg-slate-200 font-black text-slate-700 text-xs flex items-center justify-center">-</button>
+        <input type="number" min="1" value="${q}" onchange="setPosCartQty(${idx}, this.value)"
+          class="w-10 h-6 text-center font-black text-xs bg-white border border-slate-300 rounded-lg">
+        <button type="button" onclick="updatePosCartQty(${idx}, 1)" class="w-6 h-6 rounded-lg bg-white border border-slate-300 hover:bg-slate-200 font-black text-slate-700 text-xs flex items-center justify-center">+</button>
+        <button type="button" onclick="posCart.splice(${idx},1); SoundFX.remove(); renderQuickPos()" class="w-6 h-6 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-black text-xs flex items-center justify-center ml-0.5">✕</button>
+      </div>
+    </div>`;
+  }).join('') || '<p class="text-xs text-slate-400 text-center py-4 font-bold">اختر من المنتجات لإضافتها للفاتورة</p>';
 
   // Render Quick POS Sales Table & Today's Total
-  const todayIso = new Date(getTrueNow()).toISOString().slice(0, 10);
+  const todayIso = getLocalIsoDate(getTrueNow());
   const allCafeSales = (appState.daily || []).filter(d => d.type === 'مبيعات كافيه');
   const todayCafeSales = allCafeSales.filter(d => isOpenTodayItem(d, todayIso));
   const todayCafeSum = todayCafeSales.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
@@ -4786,11 +4977,42 @@ function renderQuickPos() {
 function addToPosCart(prodId) {
   if (!canWrite(false)) return;
   const p = appState.products.find(x => x.id === prodId);
-  if (p) {
-    posCart.push(p);
-    SoundFX.itemAdd();
-    renderQuickPos();
+  if (!p) return;
+  const qtyInput = document.getElementById('posQuickAddQty');
+  const addQty = Math.max(1, parseInt(qtyInput?.value, 10) || 1);
+  const existing = posCart.find(x => x.id === p.id);
+  if (existing) {
+    existing.qty = (Number(existing.qty) || 1) + addQty;
+  } else {
+    posCart.push({ ...p, qty: addQty });
   }
+  if (qtyInput && addQty > 1) qtyInput.value = '1';
+  SoundFX.itemAdd();
+  renderQuickPos();
+}
+
+function updatePosCartQty(idx, delta) {
+  if (!posCart[idx]) return;
+  const next = (Number(posCart[idx].qty) || 1) + delta;
+  if (next <= 0) {
+    posCart.splice(idx, 1);
+    SoundFX.remove();
+  } else {
+    posCart[idx].qty = next;
+    SoundFX.itemAdd();
+  }
+  renderQuickPos();
+}
+
+function setPosCartQty(idx, rawVal) {
+  if (!posCart[idx]) return;
+  const val = parseInt(rawVal, 10);
+  if (isNaN(val) || val <= 0) {
+    posCart.splice(idx, 1);
+  } else {
+    posCart[idx].qty = val;
+  }
+  renderQuickPos();
 }
 
 function deleteQuickPosSale(saleId) {
@@ -4805,17 +5027,23 @@ function deleteQuickPosSale(saleId) {
 
 function checkoutQuickPos() {
   if (!canWrite(false) || posCart.length === 0) return;
-  const total = posCart.reduce((s, i) => s + i.price, 0);
-  const summary = posCart.map(i => i.name).join('، ');
+  const total = posCart.reduce((s, i) => s + (Number(i.price) * (Number(i.qty) || 1)), 0);
+  const summary = posCart.map(i => {
+    const q = Number(i.qty) || 1;
+    return q > 1 ? `${i.name} ×${q}` : i.name;
+  }).join('، ');
   const saleRecord = {
     id: Date.now(),
     date: formatDateTime12(getTrueNow()),
-    isoDate: new Date(getTrueNow()).toISOString().slice(0, 10),
+    isoDate: getLocalIsoDate(getTrueNow()),
     type: 'مبيعات كافيه',
     title: summary,
     amount: total
   };
-  posCart.forEach(item => decrementProductStock(item.id));
+  posCart.forEach(item => {
+    const q = Number(item.qty) || 1;
+    for (let k = 0; k < q; k++) decrementProductStock(item.id);
+  });
   appState.daily.unshift(saleRecord);
   lastQuickPosSale = saleRecord;
   posCart = [];
@@ -6324,7 +6552,7 @@ function addShopWithdrawal() {
   }
 
   const now = getTrueNow();
-  const isoDate = new Date(now).toISOString().slice(0, 10);
+  const isoDate = getLocalIsoDate(now);
   const monthKey = isoDate.slice(0, 7);
 
   appState.withdrawals = appState.withdrawals || [];
@@ -6578,11 +6806,395 @@ window.addEventListener('DOMContentLoaded', async () => {
   syncAuthGate();
   updateHeaderClock();
   renderAll();
-  if (!(await fbToken())) showFbAuth();
-  await pullStateFromCloud(true);
-  mirrorPublic(true);
+  if (!(await fbToken())) {
+    showFbAuth();
+  } else {
+    await pullStateFromCloud(true);
+    mirrorPublic(true);
+  }
 });
+
+// ==================== FLOATING DRAGGABLE CALCULATOR ====================
+let calcExpr = '';
+let calcJustEvaluated = false;
+
+function toggleFloatingCalc() {
+  const el = document.getElementById('floatingCalcWidget');
+  if (!el) return;
+  el.classList.toggle('hidden');
+  if (typeof SoundFX !== 'undefined' && SoundFX.click) SoundFX.click();
+}
+
+function calcAction(val) {
+  const disp = document.getElementById('calcDisplay');
+  const hist = document.getElementById('calcHistoryLine');
+  if (!disp) return;
+  if (val === 'C') {
+    calcExpr = '';
+    calcJustEvaluated = false;
+    disp.textContent = '0';
+    if (hist) hist.textContent = '';
+    return;
+  }
+  if (val === 'BS') {
+    calcExpr = calcExpr.slice(0, -1);
+    disp.textContent = calcExpr || '0';
+    return;
+  }
+  if (val === '=') {
+    if (!calcExpr) return;
+    try {
+      const safe = calcExpr.replace(/[^0-9+\-*/.%()]/g, '').replace(/%/g, '/100');
+      const res = Function('"use strict";return (' + safe + ')')();
+      if (hist) hist.textContent = calcExpr + ' =';
+      const formatted = Number.isFinite(res) ? (Math.round(res * 10000) / 10000).toString() : 'خطأ';
+      disp.textContent = Number.isFinite(res) ? Number(formatted).toLocaleString('en-US') : 'خطأ';
+      calcExpr = Number.isFinite(res) ? formatted : '';
+      calcJustEvaluated = true;
+    } catch (e) {
+      disp.textContent = 'خطأ';
+      calcExpr = '';
+    }
+    return;
+  }
+  const isOp = ['+', '-', '*', '/', '%'].includes(val);
+  if (calcJustEvaluated && !isOp) {
+    calcExpr = '';
+    if (hist) hist.textContent = '';
+  }
+  calcJustEvaluated = false;
+  calcExpr += val;
+  disp.textContent = calcExpr;
+}
+
+(function initDraggableCalc() {
+  let dragging = false, startX = 0, startY = 0, origLeft = 0, origTop = 0;
+  document.addEventListener('DOMContentLoaded', () => {
+    const widget = document.getElementById('floatingCalcWidget');
+    const header = document.getElementById('floatingCalcHeader');
+    if (!widget || !header) return;
+
+    const onStart = (clientX, clientY) => {
+      dragging = true;
+      const rect = widget.getBoundingClientRect();
+      startX = clientX;
+      startY = clientY;
+      origLeft = rect.left;
+      origTop = rect.top;
+      widget.style.right = 'auto';
+    };
+    const onMove = (clientX, clientY) => {
+      if (!dragging) return;
+      const nx = Math.max(4, Math.min(window.innerWidth - widget.offsetWidth - 4, origLeft + (clientX - startX)));
+      const ny = Math.max(4, Math.min(window.innerHeight - widget.offsetHeight - 4, origTop + (clientY - startY)));
+      widget.style.left = nx + 'px';
+      widget.style.top = ny + 'px';
+    };
+    const onEnd = () => { dragging = false; };
+
+    header.addEventListener('mousedown', e => { if (e.target.tagName !== 'BUTTON') onStart(e.clientX, e.clientY); });
+    window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+    window.addEventListener('mouseup', onEnd);
+
+    header.addEventListener('touchstart', e => { if (e.target.tagName !== 'BUTTON' && e.touches[0]) onStart(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+    window.addEventListener('touchmove', e => { if (dragging && e.touches[0]) onMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+    window.addEventListener('touchend', onEnd);
+  });
+})();
+
+
+// ==================== TIMEZONE-SAFE LOCAL DATE & AUDIT LOG ====================
+function getLocalIsoDate(ts) {
+  const d = new Date(ts || getTrueNow());
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function logAudit(action, details) {
+  appState.auditLog = Array.isArray(appState.auditLog) ? appState.auditLog : [];
+  appState.auditLog.unshift({
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    time: formatDateTime12(getTrueNow()),
+    user: currentLoggedUser ? currentLoggedUser.label : 'المدير',
+    action,
+    details: String(details || '')
+  });
+  if (appState.auditLog.length > 100) appState.auditLog = appState.auditLog.slice(0, 100);
+  renderAuditLog();
+}
+
+function renderAuditLog() {
+  const box = document.getElementById('auditLogListBox');
+  if (!box) return;
+  const logs = (appState.auditLog || []).slice(0, 50);
+  if (logs.length === 0) {
+    box.innerHTML = '<p class="text-slate-400 text-center py-4 font-bold">لا توجد حركات مسجلة في سجل المراقبة بعد</p>';
+    return;
+  }
+  box.innerHTML = logs.map(l => `
+    <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2">
+      <div>
+        <span class="font-black text-slate-800">${l.action}</span>
+        <span class="text-slate-600 font-bold mr-1">— ${l.details}</span>
+      </div>
+      <div class="text-[11px] font-bold text-slate-400 flex items-center gap-2">
+        <span class="bg-sky-50 text-sky-700 px-2 py-0.5 rounded-md">${l.user}</span>
+        <span>${l.time}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ==================== SHIFT HANDOVER ====================
+let currentShiftExpected = 0;
+
+function openShiftHandoverModal() {
+  if (!canWrite(false)) return;
+  const todayIso = getLocalIsoDate(getTrueNow());
+  const todayIncome = (appState.daily || []).filter(d => d.isoDate === todayIso || (!d.isoDate && d.date && d.date.includes(new Date(getTrueNow()).toLocaleDateString('ar-SY')))).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const todayWd = (appState.withdrawals || []).filter(w => w.source === 'today' && w.isoDate === todayIso).reduce((s, w) => s + (Number(w.amount) || 0), 0);
+  currentShiftExpected = Math.max(0, todayIncome - todayWd);
+  document.getElementById('shiftExpectedCash').textContent = `${currentShiftExpected.toLocaleString()} ل.س`;
+  document.getElementById('shiftActualCashInput').value = '';
+  document.getElementById('shiftNotesInput').value = '';
+  document.getElementById('shiftDiffBox').classList.add('hidden');
+  openModal('shiftHandoverModal');
+}
+
+function updateShiftDiffPreview() {
+  const actual = Number(document.getElementById('shiftActualCashInput').value);
+  const box = document.getElementById('shiftDiffBox');
+  if (!box || document.getElementById('shiftActualCashInput').value === '') {
+    if (box) box.classList.add('hidden');
+    return;
+  }
+  const diff = actual - currentShiftExpected;
+  box.classList.remove('hidden');
+  if (diff === 0) {
+    box.className = 'rounded-xl p-2.5 text-center text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200';
+    box.textContent = '✅ الصندوق مطابق 100% بدون أي عجز أو زيادة';
+  } else if (diff > 0) {
+    box.className = 'rounded-xl p-2.5 text-center text-xs font-black bg-sky-50 text-sky-700 border border-sky-200';
+    box.textContent = `📈 زيادة بالصندوق: +${diff.toLocaleString()} ل.س`;
+  } else {
+    box.className = 'rounded-xl p-2.5 text-center text-xs font-black bg-rose-50 text-rose-700 border border-rose-200';
+    box.textContent = `⚠️ عجز بالصندوق: ${diff.toLocaleString()} ل.س`;
+  }
+}
+
+function confirmShiftHandover() {
+  if (!canWrite(false)) return;
+  const raw = document.getElementById('shiftActualCashInput').value;
+  if (raw === '') return alert('يرجى إدخال المبلغ الفعلي المعدود في الدرج');
+  const actual = Math.round(Number(raw) || 0);
+  const diff = actual - currentShiftExpected;
+  const notes = (document.getElementById('shiftNotesInput').value || '').trim();
+  const diffTxt = diff === 0 ? 'مطابق' : (diff > 0 ? `زيادة +${diff.toLocaleString()}` : `عجز ${diff.toLocaleString()}`);
+  logAudit('تسليم وردية', `المتوقع: ${currentShiftExpected.toLocaleString()} | الفعلي: ${actual.toLocaleString()} (${diffTxt})${notes ? ' — ' + notes : ''}`);
+  closeModal('shiftHandoverModal');
+  pushStateToCloud();
+  alert('✅ تم تثبيت تسليم الوردية وتسجيله في سجل المراقبة بنجاح!');
+}
+
+// ==================== MERGE / TRANSFER SESSION ====================
+function mergeWithAnotherSession() {
+  if (!canWrite(false)) return;
+  const target = (appState.sessions || []).find(s => s.id === selectedSessionId && !s.checkedOut);
+  if (!target) return;
+  const others = (appState.sessions || []).filter(s => !s.checkedOut && s.id !== target.id);
+  if (others.length === 0) return alert('لا توجد جلسات نشطة أخرى لدمجها مع هذا الحساب.');
+
+  const listText = others.map((s, i) => `${i + 1}) ${s.customerName}${s.seat ? ' (' + s.seat + ')' : ''}`).join('\n');
+  const choice = prompt(`اختر رقم الجلسة التي تريد دمج حسابها داخل حساب (${target.customerName}):\n\n${listText}`);
+  const idx = parseInt(choice, 10) - 1;
+  if (isNaN(idx) || idx < 0 || idx >= others.length) return;
+
+  const src = others[idx];
+  const now = getTrueNow();
+  const srcElapsed = Math.max(0, (src.paused ? (src.pausedAt || now) : now) - src.startTime - (src.pausedMs || 0));
+  const srcTimeCost = calculateTimeCost(srcElapsed, appState.settings.hourlyRate || 5000);
+
+  target.orders = Array.isArray(target.orders) ? target.orders : [];
+  target.orders.push({
+    name: `🔗 وقت جلسة مدمجة (${src.customerName})`,
+    price: srcTimeCost,
+    time: formatTime12(now)
+  });
+  (src.orders || []).forEach(o => {
+    target.orders.push({ ...o, name: `🔗 ${o.name} (${src.customerName})` });
+  });
+
+  appState.sessions = appState.sessions.filter(s => s.id !== src.id);
+  logAudit('دمج جلسة', `تم دمج حساب ${src.customerName} داخل حساب ${target.customerName}`);
+  pushStateToCloud();
+  openSessionDetail(target.id);
+  renderAll();
+}
+
+// ==================== KEYBOARD SHORTCUTS (F2, F4, ESC) ====================
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'F2') {
+    e.preventDefault();
+    if (typeof openNewSessionModal === 'function') openNewSessionModal();
+  } else if (e.key === 'F4') {
+    e.preventDefault();
+    if (typeof toggleFloatingCalc === 'function') toggleFloatingCalc();
+  } else if (e.key === 'Escape') {
+    document.querySelectorAll('.fixed.inset-0.flex').forEach(m => {
+      if (m.id && m.id !== 'loginLockOverlay') closeModal(m.id);
+    });
+  }
+});
+
+// Hook renderAuditLog into renderAll
+const _origRenderAll = typeof renderAll === 'function' ? renderAll : null;
+if (_origRenderAll) {
+  renderAll = function() {
+    _origRenderAll();
+    renderAuditLog();
+  };
+}
+
+
+// ==================== HEADER LIVE CUSTOMER SEARCH BY NAME / CODE / PHONE ====================
+function hideHeaderCustomerSuggestions() {
+  const box = document.getElementById('headerCustomerSuggestBox');
+  if (box) box.classList.add('hidden');
+}
+
+function renderHeaderCustomerSuggestions(rawQuery) {
+  const box = document.getElementById('headerCustomerSuggestBox');
+  if (!box) return;
+  const q = String(rawQuery || '').trim().toLowerCase();
+  if (!q) {
+    box.classList.add('hidden');
+    return;
+  }
+  const matches = (appState.customers || []).filter(c => {
+    const name = String(c.name || '').toLowerCase();
+    const code = String(c.code || '').toLowerCase();
+    const phone = String(c.phone || '').toLowerCase();
+    return name.includes(q) || code.includes(q) || phone.includes(q);
+  }).slice(0, 8);
+
+  if (matches.length === 0) {
+    box.innerHTML = '<div class="p-3 text-center text-xs font-bold text-slate-400">لا يوجد زبون مسجل مطابق لهذا البحث</div>';
+    box.classList.remove('hidden');
+    return;
+  }
+
+  box.innerHTML = matches.map(c => {
+    const activeSess = (appState.sessions || []).find(s => s.customerId === c.id && !s.checkedOut);
+    const hasSub = (appState.subscriptions || []).some(s => s.customerId === c.id && Number(s.remainingHours) > 0 && (!s.expiresAt || s.expiresAt > getTrueNow()));
+    return `
+      <button type="button" onclick="selectHeaderCustomerForCheckIn('${String(c.code).replace(/'/g, '')}')"
+        class="w-full px-3.5 py-2.5 hover:bg-sky-50 text-right flex items-center justify-between gap-2 transition">
+        <div class="min-w-0">
+          <div class="font-black text-slate-800 text-xs sm:text-sm truncate flex items-center gap-1.5">
+            <span>${c.name}</span>
+            <span class="font-mono text-[11px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md">#${c.code}</span>
+            ${hasSub ? '<span class="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded-md">🎫 باقة</span>' : ''}
+          </div>
+          <div class="text-[11px] font-bold text-slate-400 mt-0.5">${c.phone || ''}${c.job ? ' • ' + c.job : ''}</div>
+        </div>
+        <span class="shrink-0 text-[11px] font-black px-2.5 py-1 rounded-xl ${activeSess ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-sky-500 text-white shadow-sm'}">
+          ${activeSess ? '🟢 فتح الجلسة' : '➕ تسجيل دخول'}
+        </span>
+      </button>`;
+  }).join('');
+  box.classList.remove('hidden');
+}
+
+function selectHeaderCustomerForCheckIn(code) {
+  hideHeaderCustomerSuggestions();
+  handleBarcodeScan(code, false);
+}
+
+document.addEventListener('click', (e) => {
+  const inp = document.getElementById('barcodeInput');
+  const box = document.getElementById('headerCustomerSuggestBox');
+  if (!box || box.classList.contains('hidden')) return;
+  if (e.target !== inp && !box.contains(e.target)) {
+    box.classList.add('hidden');
+  }
+});
+
 </script>
+
+  
+  
+  <!-- ==================== SHIFT HANDOVER MODAL ==================== -->
+  <div id="shiftHandoverModal" class="fixed inset-0 bg-slate-900/65 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-indigo-200">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-black text-slate-800">🔄 تسليم وردية وجرد الدرج</h3>
+        <button onclick="closeModal('shiftHandoverModal')" class="text-slate-400 hover:text-slate-700 font-bold text-2xl">&times;</button>
+      </div>
+      <div class="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 text-center space-y-1">
+        <p class="text-xs font-bold text-indigo-700">المبلغ المفروض وجوده بالدرج (صافي اليوم)</p>
+        <p id="shiftExpectedCash" class="text-2xl font-black text-indigo-900">0 ل.س</p>
+      </div>
+      <div class="space-y-3 text-right">
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">المبلغ الفعلي المعدود في الدرج (ل.س) *</label>
+          <input id="shiftActualCashInput" type="number" min="0" dir="ltr" oninput="updateShiftDiffPreview()" placeholder="أدخل المبلغ الفعلي..." class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-base font-black text-center">
+        </div>
+        <div id="shiftDiffBox" class="hidden rounded-xl p-2.5 text-center text-xs font-black"></div>
+        <div>
+          <label class="block text-xs font-extrabold text-slate-600 mb-1">ملاحظات تسليم الوردية (اختياري)</label>
+          <input id="shiftNotesInput" type="text" placeholder="مثلاً: تسليم من الكاشير الصباحي للمسائي..." class="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs font-bold">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button onclick="closeModal('shiftHandoverModal')" class="px-4 py-2 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100">إلغاء</button>
+        <button onclick="confirmShiftHandover()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-5 py-2 rounded-xl text-sm shadow transition">✅ تثبيت تسليم الوردية</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== FLOATING DRAGGABLE CALCULATOR ==================== -->
+  <div id="floatingCalcWidget" class="no-print hidden fixed top-24 left-6 w-72 bg-slate-900 text-white rounded-3xl shadow-2xl border border-sky-400/40 z-[150] select-none overflow-hidden">
+    <div id="floatingCalcHeader" class="bg-gradient-to-l from-slate-800 to-slate-700 px-4 py-2.5 flex items-center justify-between cursor-move border-b border-slate-600/60">
+      <div class="flex items-center gap-2 text-xs font-black text-sky-300">
+        <span>🧮</span><span>آلة حاسبة سريعة</span>
+      </div>
+      <button onclick="toggleFloatingCalc()" class="w-6 h-6 rounded-full bg-slate-600/70 hover:bg-rose-500 text-white text-xs font-black flex items-center justify-center transition">&times;</button>
+    </div>
+    <div class="p-3.5 space-y-2.5">
+      <div class="bg-slate-950/90 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-left" dir="ltr">
+        <div id="calcHistoryLine" class="text-[11px] text-slate-400 font-mono h-4 truncate"></div>
+        <div id="calcDisplay" class="text-2xl font-black font-mono text-sky-300 truncate">0</div>
+      </div>
+      <div class="grid grid-cols-4 gap-1.5 text-sm font-black" dir="ltr">
+        <button onclick="calcAction('C')" class="bg-rose-600/85 hover:bg-rose-600 py-2.5 rounded-xl transition">C</button>
+        <button onclick="calcAction('BS')" class="bg-slate-700 hover:bg-slate-600 py-2.5 rounded-xl transition">⌫</button>
+        <button onclick="calcAction('%')" class="bg-slate-700 hover:bg-slate-600 py-2.5 rounded-xl transition">%</button>
+        <button onclick="calcAction('/')" class="bg-sky-600 hover:bg-sky-500 py-2.5 rounded-xl transition">÷</button>
+
+        <button onclick="calcAction('7')" class="bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl transition">7</button>
+        <button onclick="calcAction('8')" class="bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl transition">8</button>
+        <button onclick="calcAction('9')" class="bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl transition">9</button>
+        <button onclick="calcAction('*')" class="bg-sky-600 hover:bg-sky-500 py-2.5 rounded-xl transition">×</button>
+
+        <button onclick="calcAction('4')" class="bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl transition">4</button>
+        <button onclick="calcAction('5')" class="bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl transition">5</button>
+        <button onclick="calcAction('6')" class="bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl transition">6</button>
+        <button onclick="calcAction('-')" class="bg-sky-600 hover:bg-sky-500 py-2.5 rounded-xl transition">−</button>
+
+        <button onclick="calcAction('1')" class="bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl transition">1</button>
+        <button onclick="calcAction('2')" class="bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl transition">2</button>
+        <button onclick="calcAction('3')" class="bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl transition">3</button>
+        <button onclick="calcAction('+')" class="bg-sky-600 hover:bg-sky-500 py-2.5 rounded-xl transition">+</button>
+
+        <button onclick="calcAction('000')" class="bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl text-xs text-amber-300 transition">000</button>
+        <button onclick="calcAction('0')" class="bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl transition">0</button>
+        <button onclick="calcAction('.')" class="bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl transition">.</button>
+        <button onclick="calcAction('=')" class="bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-xl transition">=</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ==================== FIREBASE CLOUD LOGIN ==================== -->
   <div id="fbAuthOverlay" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md hidden items-center justify-center p-4 z-[200]">
